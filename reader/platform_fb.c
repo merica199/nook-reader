@@ -450,6 +450,10 @@ static void read_uevents(void)
 		return;
 	int charging = 0;
 	fb_battery(&charging);
+	/* in the log, to tell "no uevent" from "no change" */
+	fprintf(stderr, "power supply changed: %s%s\n",
+		charging ? "plugged in" : "on battery",
+		charging != was_charging ? "" : " (no change)");
 	if (charging != was_charging) {
 		was_charging = charging;
 		push(MR_EV_CHARGER, 0, 0);
@@ -568,12 +572,26 @@ static int fb_light(int percent)
 /* The MAX17042 fuel gauge (checked on the Nook 2026-11-24). */
 #define BATTERY "/sys/class/power_supply/max17042-0/"
 
+/*
+ * "Charging" means plugged in, to a wall charger (ac) or a computer
+ * (usb). Those two flags flip the moment power comes or goes; the fuel
+ * gauge's own status line catches up seconds later, too late to tell
+ * a plug-in from the uevent it causes.
+ */
+#define SUPPLY "/sys/class/power_supply/"
+
 static int fb_battery(int *charging)
 {
-	char status[32];
-	read_line(BATTERY "status", status, sizeof status);
-	*charging = strcmp(status, "Charging") == 0 ||
-		    strcmp(status, "Full") == 0;
+	int ac = read_int(SUPPLY "ac/online");
+	int usb = read_int(SUPPLY "usb/online");
+	if (ac >= 0 || usb >= 0) {
+		*charging = ac > 0 || usb > 0;
+	} else {
+		char status[32];
+		read_line(BATTERY "status", status, sizeof status);
+		*charging = strcmp(status, "Charging") == 0 ||
+			    strcmp(status, "Full") == 0;
+	}
 	return read_int(BATTERY "capacity");
 }
 

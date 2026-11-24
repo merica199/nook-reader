@@ -39,14 +39,15 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
   - **the self-update**: 0.1.0 copied over the shared drive, installed, and restarted into (Settings showed the new version);
   - sharing the books over USB under MyNook: the drive appeared on the Mac;
   - `adb shell` under MyNook (0.2.0), as the `shell` user, after `/etc/mdev.conf` opened `/dev/ptmx`;
+  - Connect to computer, then eject on the Mac: MyNook takes the books back (0.2.1);
+  - holding power shows Power off, Restart, Cancel (power off itself worked in an earlier build, not re-checked);
   - charging from the Mac's USB port: about 12 mA net into the battery at 98% with the screen on (`current_now`), so a computer port barely charges an awake Nook.
 
 ## Not yet verified
 
 - **Sleep** through early suspend with no Android running, and the power button waking it.
-- **USB sharing** under MyNook: eject detection and remounting (the drive appearing on the Mac is verified).
-- **Plugging in while asleep** waking the screen: whether this kernel wakes from deep sleep on a charger. If it doesn't, the screen lights the next time something else wakes it.
-- **A wall charger** under MyNook: charges, lights the lock screen, and doesn't ask about connecting.
+- **Plugging in or unplugging while asleep** lighting the screen. In 0.2.1 it didn't, on the Mac's port or a wall charger: "plugged in" was read from the fuel gauge's status line, which updates seconds after the kernel's uevent. 0.2.2 reads `ac/online` and `usb/online` instead and logs every power-supply uevent; if it still doesn't light, the log says whether the uevent arrived (the kernel may not wake from deep sleep on a charger).
+- **A wall charger** under MyNook: that it charges and doesn't ask about connecting.
 - **Power off** (SIGUSR2 to BusyBox init), and restart landing in CyanogenMod.
 - **Speed** on the Nook: opening books, the dictionary lookup, drawing covers, and color frames (three table lookups a pixel instead of one).
 - **Color** on the Nook's own screen (RGB565 packing of real colors; only gray had been shown on it).

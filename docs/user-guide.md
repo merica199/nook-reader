@@ -97,9 +97,13 @@ The Nook takes the drive back, finds the update, and installs it. The Nook shows
 
 Which version is running is at the bottom of Settings, Device.
 
+### Staying up to date
+
+The Nook never goes online, so it can't tell you a new version is out. To hear about one, open [the project on GitHub](https://github.com/merica199/nook-reader) and choose **Watch → Custom → Releases**: you'll get an email whenever a new version is published. The Releases page always shows the newest version and what changed; compare it with the version in Settings, Device.
+
 ## Battery
 
-The battery is at the top of every screen, an icon and a percentage, with a lightning bolt while charging. A computer's USB port charges slowly: it gives about a quarter of what the Nook's own charger does, and an awake Nook uses most of that itself. Use the wall charger to charge quickly. The lock screen shows it large, with "Charging". Plugging in or unplugging lights up the lock screen for a moment, so you can see it took. The lock screen warns when it gets low. Asleep, the Nook should use very little power; how long a charge lasts under MyNook hasn't been measured yet.
+The battery is at the top of every screen, an icon and a percentage, with a lightning bolt while charging. A computer's USB port charges slowly: it gives about a quarter of what the Nook's own charger does, and an awake Nook uses most of that itself. Use the wall charger to charge quickly. The lock screen shows it large, with "Charging". Plugging in or unplugging lights up the lock screen for about 5 seconds, so you can see it took; touch it to keep it lit. The lock screen warns when it gets low. Asleep, the Nook should use very little power; how long a charge lasts under MyNook hasn't been measured yet.
 
 ## When something goes wrong
 

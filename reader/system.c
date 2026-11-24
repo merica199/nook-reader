@@ -23,6 +23,7 @@
 
 #define POWER_HOLD_MS 1500	/* a hold, not a press: the power menu */
 #define LOCK_SHOW_MS 30000	/* the lock screen goes dark again */
+#define PLUG_SHOW_MS 5000	/* ... or sooner, lit by plugging in */
 #define USB_POLL_MS 2000	/* how often to look at the USB port */
 
 /* ---- light, sleep, waking ---- */
@@ -127,10 +128,14 @@ int sys_event(struct app *a, const mr_event *ev)
 		return 2;
 
 	case MR_EV_CHARGER:
-		/* plugging in or out lights the screen, like a phone */
+		/*
+		 * Plugging in or out lights the screen for a moment, like a
+		 * phone, to show it took. A touch keeps it up longer.
+		 */
 		a->last_input = now;
 		if (a->asleep) {
 			wake(a);
+			a->lock_until = now + PLUG_SHOW_MS;
 			return 1;
 		}
 		if (locked(a))

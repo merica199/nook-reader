@@ -80,6 +80,12 @@ make update
 
 That builds MyNook and copies it, with its SHA-256, into `MyNook-update/` on the Nook's drive, then ejects it. MyNook takes the drive back, checks the file, installs it, and restarts into it. The version it replaced stays on the boot partition as `uAltRam.old`. The running version is shown at the bottom of Settings, Device. Versions are MAJOR.MINOR.PATCH, from the `VERSION` file: patch releases fix bugs, minor releases add features, and 1.0.0 comes when everything listed as unverified in `docs/notes.md` has been checked on a Nook.
 
+### Staying up to date
+
+MyNook never goes online, so it can't tell you a new version is out. To hear about new versions, open this repository on GitHub and choose **Watch → Custom → Releases**: GitHub emails you when a release is published, and only then. The [Releases page](https://github.com/merica199/nook-reader/releases) always shows the latest version and what changed. Compare it with the version at the bottom of Settings → Device on your Nook.
+
+Pushes to this repository don't make a release, and don't reach anyone's Nook; only a published release does. If you build from source, `git pull` and `make update` with the Nook connected.
+
 To uninstall: `scripts/nook-install.sh remove`, which deletes the two files.
 
 MyNook expects the books in `My Files/Books` on the internal books partition (the "MyNOOKcolor" drive). It keeps its own files in `/data/mynook`: saved places, settings, the dictionary, and a log.
