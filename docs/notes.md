@@ -1,0 +1,65 @@
+# Development notes
+
+What's been checked, what hasn't, and what was learned on the way.
+
+## Verified on the Nook
+
+Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
+
+- **2026-11-23, read over adb:**
+  - framebuffer: RGB565, 1024x600, stride 2048;
+  - touch: `event2`, multitouch protocol B;
+  - buttons: `event0`, `event1`;
+  - adb runs as root.
+- **2026-11-24, the reader under Android (`make run`):**
+  - the picture is the right way up (`cw`);
+  - touch lands where the finger is;
+  - the books load;
+  - the backlight works (`lcd-backlight`, max 255);
+  - the dictionary panel works;
+  - text sizes up to 28 pt.
+- **2026-11-24, read over adb, for MyNook:**
+  - fuel gauge (`max17042-0`) and real-time clock (`twl_rtc`, UTC) present;
+  - `/sys/power/state` takes `mem`, with wake locks;
+  - the USB gadget has two drive slots;
+  - the boot partition holds `MLO`, `u-boot.bin`, `uImage`, `uRamdisk`, `uRecImg`, `uRecRam`;
+  - the bootloader's script has the `altboot` slot (`uAltImg` + `uAltRam`) and the boot counter (section 2 of how-it-works.md);
+  - `/rom/devconf/BootCnt` reads 0.
+- **2026-11-24, MyNook installed:**
+  - boot partition backed up first;
+  - `uAltRam` on the Nook matches the build by SHA-256;
+  - `uAltImg` is identical to `uImage`.
+
+## Not yet verified
+
+- **MyNook's first boot.** Which button opens the boot menu (n is expected), and whether the kernel runs `/init` from the archive.
+- **Sleep** through early suspend with no Android running, and the power button waking it.
+- **USB sharing** under MyNook: the drive appearing on the Mac, eject detection, remounting.
+- **`adbd`** from CyanogenMod's `/system` running outside Android.
+- **Power off** (SIGUSR2 to BusyBox init), and restart landing in CyanogenMod.
+- **Speed** on the Nook: opening books, the dictionary lookup, drawing covers.
+
+## Lessons
+
+- **Lay out one chapter at a time.**
+  - Drawing a page takes 0.3 to 0.5 ms (median), 20 to 50 ms at worst (pictures).
+  - Laying out a whole book takes 67 to 648 ms, so books open by chapter: about 5 ms.
+  - `fz_count_pages` forces the whole layout and is never called.
+- **MuPDF bookmarks can't be saved:** on an EPUB, `fz_make_bookmark` returns a memory address. Places are saved as chapter, page and chapter length instead.
+- **`fz_clear_pixmap_rect_with_value` does nothing on a gray pixmap** in 1.27.2 (tested). `draw.c` fills rectangles itself.
+- **MuPDF's default stylesheet has `@page { margin: 3em 2em }`.** Those margins grow with the text, to 124 px a side at 28 pt. The reader's own CSS turns them off with `!important` and sets fixed margins.
+- **GCC's `-Wclobbered` finds what clang can't.** After `fz_try`'s `longjmp`, a local changed since the `setjmp` is undefined (C11 7.13.2.1). Every `fz_try` with other locals near it now sits in its own small function, so the build stays warning-free and a real one would show.
+- **Missing letters can be the book's fault:** one EPUB's text dropped its "fi" ligatures at the source (checked in the raw file).
+- **CSS warnings:** MuPDF's CSS parser reports EPUB 3 namespace selectors once per chapter. The reader silences warnings and still reports real errors through `fz_catch`.
+
+## Tests
+
+- **Scripted runs on the Mac**, frame by frame:
+  - every screen, end to end;
+  - the lock screen, sliding to unlock, the power menu, auto-sleep;
+  - setting the clock;
+  - USB sharing and ejecting.
+- **0 leaks** under `leaks --atExit` (2026-11-23).
+- **All 72 test books' chapters** line up with the progress weighting.
+- **The ARM binary under QEMU**: frames identical to the Mac's, except at most 6 gray levels where pictures are scaled.
+- **`python3 -I scripts/dict/respell.py`** checks the respelling against 33 known words.

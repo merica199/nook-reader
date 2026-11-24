@@ -1,0 +1,28 @@
+#!/bin/sh
+# The reader, as MyNook runs it. init starts this and starts it again
+# if it ever exits (/etc/inittab). Its messages go to a log on the
+# data partition; CyanogenMod can read it over adb if MyNook won't
+# start properly.
+
+# MYNOOK tells the reader it's the whole system: sleep, power off and
+# USB sharing are real (reader/platform_fb.c).
+export MYNOOK=1
+export MYNOOK_BOOKS_DEV=/dev/mmcblk0p8
+export MYNOOK_BOOKS_DIR=/storage/sdcard1
+export MR_DICT=/data/mynook/dict
+export HOME=/data/mynook
+# Eastern time, with its daylight saving rules (POSIX TZ format: EST
+# is UTC-5, EDT starts the 2nd Sunday of March and ends the 1st Sunday
+# of November).
+export TZ=EST5EDT,M3.2.0,M11.1.0
+
+LOG=/data/mynook/log
+if [ -f $LOG ] && [ "$(wc -c < $LOG)" -gt 1000000 ]; then
+	mv $LOG $LOG.old
+fi
+echo "--- $(date) ---" >> $LOG
+
+# a crash loop shouldn't spin the CPU flat out
+sleep 1
+exec /usr/bin/reader "/storage/sdcard1/My Files/Books" \
+	/data/mynook/state >> $LOG 2>&1

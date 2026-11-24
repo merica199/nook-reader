@@ -1,0 +1,55 @@
+#!/bin/sh
+# MyNook's start-up, run once by init before the reader.
+#
+# Storage, by the Nook's partition numbers (mmcblk0 is the internal
+# memory):
+#
+#   p5  /system          CyanogenMod's system, read-only: for adbd
+#   p6  /data            CyanogenMod's data partition; MyNook keeps
+#                        its own files in /data/mynook (saved places,
+#                        settings, the dictionary, the log)
+#   p8  /storage/sdcard1 the books (the MyNOOKcolor drive), at the
+#                        same path CyanogenMod uses, so saved places
+#                        work under both
+#
+# Never touched: p1 (boot) and p2 (/rom: the Nook's serial number and
+# factory settings) are read only by the bootloader.
+
+# Stay awake until the reader decides to sleep (reader/platform_fb.c).
+echo mynook > /sys/power/wake_lock
+
+# The clock: the hardware clock keeps UTC, as Android left it.
+hwclock -s -u
+
+mkdir -p /system /data /storage/sdcard1
+mount -t ext4 -o ro /dev/mmcblk0p5 /system
+mount -t ext4 -o noatime /dev/mmcblk0p6 /data
+mount -t vfat -o noatime,utf8,shortname=mixed /dev/mmcblk0p8 \
+	/storage/sdcard1
+mkdir -p /data/mynook
+
+# USB, set up once the way CyanogenMod's init.encore.usb.rc does it:
+# a drive with nothing in it (until the reader shares the books) and
+# adb. The serial number is the Nook's own, from the bootloader.
+USB=/sys/class/android_usb/android0
+serial=$(sed -n 's/.*androidboot.serialno=\([^ ]*\).*/\1/p' \
+	/proc/cmdline)
+echo 0 > $USB/enable
+echo 2080 > $USB/idVendor
+echo 0002 > $USB/idProduct
+echo MyNook > $USB/iManufacturer
+echo "Nook Color" > $USB/iProduct
+echo "$serial" > $USB/iSerial
+echo NookColor > $USB/f_mass_storage/inquiry_string
+echo mass_storage,adb > $USB/functions
+echo 1 > $USB/enable
+
+# adb: CyanogenMod's own adbd, run from its read-only /system. It's an
+# Android program (it needs Android's C library, which is on
+# /system too), so this may not work outside Android; nothing else
+# depends on it.
+if [ -x /system/bin/adbd ]; then
+	PATH=/system/bin:/system/xbin:/usr/bin:/bin:/usr/sbin:/sbin \
+	ANDROID_ROOT=/system ANDROID_DATA=/data \
+		/system/bin/adbd >> /data/mynook/adbd.log 2>&1 &
+fi

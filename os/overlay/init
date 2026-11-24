@@ -1,0 +1,20 @@
+#!/bin/sh
+# The first program MyNook runs: the kernel starts /init from the
+# archive it unpacked into RAM. Makes /dev, then hands over to BusyBox
+# init, which runs /etc/init.d/rcS and then keeps the reader running
+# (/etc/inittab).
+#
+# This kernel (CyanogenMod's 3.0.8) has no devtmpfs, the feature that
+# fills /dev by itself, so mdev does it: it walks /sys, where every
+# device the kernel knows is listed, and makes a node in /dev for
+# each, under the same name Linux gives it (input/event2, fb0,
+# mmcblk0p8, rtc0, ...).
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t tmpfs -o mode=0755 dev /dev
+mdev -s
+# devices that show up later (none expected) go through mdev too
+echo /sbin/mdev > /proc/sys/kernel/hotplug
+
+exec 0</dev/console 1>/dev/console 2>/dev/console
+exec /sbin/init

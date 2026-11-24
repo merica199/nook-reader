@@ -1,0 +1,40 @@
+# Buildroot config for MyNook, on the Nook Color: TI OMAP3621, a
+# Cortex-A8 (ARMv7-A) with NEON and hard-float VFPv3.
+#
+# What it makes: the toolchain (GCC 15 and musl), and the whole
+# operating system as one compressed archive the kernel unpacks into
+# RAM at boot (an "initramfs"), wrapped for the Nook's bootloader:
+# output/images/rootfs.cpio.uboot, installed as uAltRam.
+#
+# No kernel: MyNook boots CyanogenMod's own (Linux 3.0.8), which
+# already drives the screen, touch, buttons, backlight, battery and
+# USB. See docs/how-it-works.md.
+BR2_arm=y
+BR2_cortex_a8=y
+BR2_ARM_EABIHF=y
+BR2_ARM_FPU_NEON=y
+
+# musl: small, and the reader links it in statically, so the same
+# binary runs under Android and under MyNook.
+BR2_TOOLCHAIN_BUILDROOT_MUSL=y
+# MuPDF's third-party libraries include C++.
+BR2_TOOLCHAIN_BUILDROOT_CXX=y
+
+# Downloads and the build live in the Docker volume, not on the Mac.
+BR2_DL_DIR="/br/dl"
+
+# The system: BusyBox (init, a shell, mount, mdev, hwclock, ...) and
+# MyNook's own files on top (os/overlay, plus the reader, which
+# scripts/build-os.sh puts in os/out/overlay).
+BR2_TARGET_GENERIC_HOSTNAME="mynook"
+BR2_TARGET_GENERIC_ISSUE="MyNook"
+BR2_INIT_BUSYBOX=y
+# No login prompt on a serial port: the Nook has none to use.
+# BR2_TARGET_GENERIC_GETTY is not set
+BR2_ROOTFS_OVERLAY="/src/os/overlay /src/os/out/overlay"
+
+# The image: a gzip'd cpio archive with a U-Boot header.
+BR2_TARGET_ROOTFS_CPIO=y
+BR2_TARGET_ROOTFS_CPIO_GZIP=y
+BR2_TARGET_ROOTFS_CPIO_UIMAGE=y
+# BR2_TARGET_ROOTFS_TAR is not set

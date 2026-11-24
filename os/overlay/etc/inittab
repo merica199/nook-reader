@@ -1,0 +1,11 @@
+# BusyBox init's table (MyNook replaces Buildroot's own).
+#
+#   sysinit    once, at start-up
+#   respawn    started, and started again if it ever exits
+#   shutdown   on the way down (power off or restart)
+#
+# The reader asks for power off with SIGUSR2 to init and for a restart
+# with SIGTERM (reader/platform_fb.c).
+::sysinit:/etc/init.d/rcS
+::respawn:/usr/bin/mynook-session
+::shutdown:/etc/init.d/stop

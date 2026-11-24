@@ -1,0 +1,19 @@
+# Downloads (scripts/fetch.sh gets them back)
+/vendor/
+
+# Built things
+/dict/
+/os/out/
+/reader/reader
+/reader/reader-nook
+/reader/frame-*.pgm
+/reader/frame-*.png
+__pycache__/
+
+# Personal editor and assistant settings
+/.vscode/
+/.claude/
+.DS_Store
+
+# Personal to-do list
+/todo.md

@@ -1,0 +1,8 @@
+#!/bin/sh
+# On the way down (power off or restart): write everything out and
+# unmount, so nothing is half-written when the power goes.
+sync
+umount /storage/sdcard1 2>/dev/null
+umount /data 2>/dev/null
+umount /system 2>/dev/null
+sync
