@@ -157,27 +157,6 @@ static void blit(struct app *a, fz_pixmap *src, int x, int y)
 		       s + r * sstride, src->w * src->n);
 }
 
-/*
- * For other screens (the lock screen): a cover's frame or stand-in,
- * drawn with the rest of the screen, and its picture, drawn after
- * dark mode's remap.
- */
-void cover_box(struct app *a, mr_book *b, int x, int y, int w, int h)
-{
-	cover_frame(a, b, x, y, w, h);
-}
-
-void cover_picture(struct app *a, mr_book *b, int x, int y, int w,
-		   int h)
-{
-	struct cover *c = get_cover(a, b, w, h);
-	if (c->pix) {
-		int cx, cy;
-		cover_spot(c, x, y, &cx, &cy);
-		blit(a, c->pix, cx, cy);
-	}
-}
-
 /* ---- the screen ---- */
 
 /* Books read, most recent first; items are sorted that way. */

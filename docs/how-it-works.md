@@ -131,7 +131,7 @@ The state file (`/data/mynook/state`) is plain text, written on every page turn 
 
 Reading settings go through one function (`style()` in `settings.c`) that hands back the open book's own value if it has one, else the default. Opening a book switches to its settings before laying it out; closing it switches back.
 
-The Library sorts by any of five orders. Home, the lock screen and start-up don't depend on that order: they ask for the most recently read books separately (`mr_library_recent`).
+The Library sorts by any of five orders. Home and start-up don't depend on that order: they ask for the most recently read books separately (`mr_library_recent`).
 
 **The passcode** is kept as a 32-bit FNV-1a hash of the digits, never the digits themselves. That keeps it out of plain sight in the state file. It isn't security against someone with adb: they can delete the line.
 

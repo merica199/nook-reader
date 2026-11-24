@@ -126,8 +126,6 @@ static void render_frame(struct app *a)
 		/* pictures keep their own colors: after the remap */
 		if (a->mode == MODE_HOME)
 			draw_home_covers(a);
-		if (a->mode == MODE_LOCK)
-			draw_lock_cover(a);
 	}
 	fz_catch(a->ctx)
 		fprintf(stderr, "draw: %s\n", fz_caught_message(a->ctx));

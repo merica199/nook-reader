@@ -13,8 +13,9 @@
 #     CyanogenMod's kernel) and uAltRam (MyNook). CyanogenMod's own
 #     files there are left alone. The bootloader's menu calls this
 #     pair "Alternate".
-#   - /data/mynook gets the dictionary, and the saved places and
-#     settings from testing under Android (/data/local/tmp/myreader).
+#   - /data/mynook gets the dictionary, the saved places and settings
+#     from testing under Android (/data/local/tmp/myreader), and a
+#     copy of CyanogenMod's adbd, so adb works under MyNook too.
 #
 # Before the first install, the whole boot partition is copied to
 # os/out/p1-backup.img on the Mac.
@@ -100,6 +101,9 @@ unmount_p1
 # MyNook's own files. Saved places from testing under Android move
 # over once.
 adb shell "mkdir -p $DATA/dict"
+# adb for MyNook: CyanogenMod's own adbd (statically linked), copied
+# from its startup archive, which is only reachable while it runs.
+adb shell "cp /sbin/adbd $DATA/adbd && chmod 755 $DATA/adbd"
 OLD=/data/local/tmp/myreader
 if sh_ok "[ -f $OLD/state ] && [ ! -f $DATA/state ]"; then
 	adb shell "mv $OLD/state $DATA/state"

@@ -13,7 +13,7 @@ How to use the reader on a Nook Color running MyNook. (For how it's built, see [
 
 ## The lock screen
 
-The lock screen shows the time, the date, the battery, and the book you're reading. Drag the **>** knob all the way to the right to unlock. Tapping doesn't unlock, so it can't open in a bag. If you leave the lock screen alone for 30 seconds, it goes dark again.
+The lock screen shows the time, the date and the battery. It doesn't show what you're reading. Drag the **>** knob all the way to the right to unlock. Tapping doesn't unlock, so it can't open in a bag. If you leave the lock screen alone for 30 seconds, it goes dark again.
 
 **Passcode:** Settings, Device, Passcode, **Set**. Choose 4 to 6 digits and type them twice. From then on the keypad asks for it after the slider. **Change** and **Turn off** ask for the current passcode first.
 

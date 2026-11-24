@@ -232,7 +232,6 @@ int sys_tick(struct app *a);
 int sys_wait_ms(struct app *a);
 void sys_sleep(struct app *a);
 void draw_lock(struct app *a);
-void draw_lock_cover(struct app *a);
 int on_lock(struct app *a, const struct action *act);
 void draw_power(struct app *a);
 int on_power(struct app *a, const struct action *act);
@@ -252,9 +251,6 @@ int on_pass(struct app *a, const struct action *act);
 /* home.c */
 void draw_home(struct app *a);
 void draw_home_covers(struct app *a);
-void cover_box(struct app *a, mr_book *b, int x, int y, int w, int h);
-void cover_picture(struct app *a, mr_book *b, int x, int y, int w,
-		   int h);
 int on_home(struct app *a, const struct action *act);
 void drop_covers(struct app *a);
 

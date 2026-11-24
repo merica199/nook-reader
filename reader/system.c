@@ -293,9 +293,11 @@ int sys_wait_ms(struct app *a)
 
 /* ---- the lock screen ---- */
 
-#define COVER_W 210
-#define COVER_H 315
-#define COVER_Y 380
+/*
+ * Time, date, battery and the slider; nothing about what you're
+ * reading.
+ */
+#define TIME_Y 330	/* the time's baseline */
 #define KNOB 96
 #define TRACK_H (KNOB + 8)
 #define TRACK_X 40
@@ -313,13 +315,6 @@ static int track_w(struct app *a)
 static int slide_max(struct app *a)
 {
 	return track_w(a) - KNOB - 8;
-}
-
-/* The book being read, if any: the one read most recently. */
-static mr_book *reading(struct app *a)
-{
-	mr_book *b;
-	return mr_library_recent(&a->lib, &b, 1) ? b : NULL;
 }
 
 void draw_lock(struct app *a)
@@ -356,9 +351,10 @@ void draw_lock(struct app *a)
 	float tw = mr_text_width(ctx, tod, MR_BOLD, 150);
 	float aw = ampm[0] ? 12 + mr_text_width(ctx, ampm, MR_BOLD, 40) : 0;
 	float x0 = (a->w - tw - aw) / 2;
-	mr_text(ctx, pix, x0, 260, tod, MR_BOLD, 150, MR_BLACK, 0, MR_LEFT);
+	mr_text(ctx, pix, x0, TIME_Y, tod, MR_BOLD, 150, MR_BLACK, 0,
+		MR_LEFT);
 	if (ampm[0])
-		mr_text(ctx, pix, x0 + tw + 12, 260, ampm, MR_BOLD, 40,
+		mr_text(ctx, pix, x0 + tw + 12, TIME_Y, ampm, MR_BOLD, 40,
 			MR_BLACK, 0, MR_LEFT);
 
 	/* "Tuesday, November 24" */
@@ -366,26 +362,10 @@ void draw_lock(struct app *a)
 	strftime(day, sizeof day, "%A", &tm);
 	strftime(month, sizeof month, "%B", &tm);
 	snprintf(buf, sizeof buf, "%s, %s %d", day, month, tm.tm_mday);
-	mr_text(ctx, pix, a->w / 2, 318, buf, MR_REGULAR, 30, MR_GRAY, 0,
-		MR_CENTER);
+	mr_text(ctx, pix, a->w / 2, TIME_Y + 60, buf, MR_REGULAR, 30,
+		MR_GRAY, 0, MR_CENTER);
 
-	/* the book being read */
-	mr_book *b = reading(a);
-	if (b) {
-		cover_box(a, b, (a->w - COVER_W) / 2, COVER_Y, COVER_W,
-			  COVER_H);
-		mr_text(ctx, pix, a->w / 2, COVER_Y + COVER_H + 44,
-			b->title, MR_BOLD, 24, MR_BLACK, a->w - 2 * MARGIN,
-			MR_CENTER);
-		int p = mr_book_percent(b);
-		if (p >= 0) {
-			snprintf(buf, sizeof buf, "%d%% read", p);
-			mr_text(ctx, pix, a->w / 2, COVER_Y + COVER_H + 78,
-				buf, MR_REGULAR, 20, MR_GRAY, 0, MR_CENTER);
-		}
-	}
-
-	if (pct >= 0 && pct < 15 && !charging)
+		if (pct >= 0 && pct < 15 && !charging)
 		mr_text(ctx, pix, a->w / 2, track_y(a) - 24,
 			"Battery low: plug in soon", MR_BOLD, 22, MR_BLACK,
 			0, MR_CENTER);
@@ -401,15 +381,6 @@ void draw_lock(struct app *a)
 	mr_fill(ctx, pix, kx, ty + 4, KNOB, KNOB, MR_BLACK);
 	mr_text(ctx, pix, kx + KNOB / 2, ty + 4 + KNOB / 2 + 14, ">",
 		MR_BOLD, 44, MR_WHITE, 0, MR_CENTER);
-}
-
-/* After dark mode's remap, so the cover keeps its own colors. */
-void draw_lock_cover(struct app *a)
-{
-	mr_book *b = reading(a);
-	if (b)
-		cover_picture(a, b, (a->w - COVER_W) / 2, COVER_Y, COVER_W,
-			      COVER_H);
 }
 
 /* Past the slider: the passcode if there is one, else straight in. */

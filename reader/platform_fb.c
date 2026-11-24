@@ -189,6 +189,8 @@ struct raw_event {
 
 struct input {
 	int fd;
+	char name[64];		/* the driver's name, e.g. "cyttsp-i2c" */
+	int logged;		/* raw events written to the log so far */
 	int max_x, max_y;	/* touch ranges, to scale to the panel */
 	int slot;		/* multitouch: which finger is reporting */
 	int touching;
@@ -219,6 +221,18 @@ static void open_inputs(void)
 		struct input *in = &inputs[n_inputs];
 		memset(in, 0, sizeof *in);
 		in->fd = fd;
+		if (ioctl(fd, EVIOCGNAME(sizeof in->name - 1), in->name) < 0)
+			snprintf(in->name, sizeof in->name, "?");
+		/*
+		 * The accelerometer isn't used, and outside Android it may
+		 * stream readings nonstop: don't wake up for it.
+		 */
+		if (strstr(in->name, "accel")) {
+			fprintf(stderr, "input: event%d %s: skipped\n", i,
+				in->name);
+			close(fd);
+			continue;
+		}
 		/* the Nook's touchscreen is multitouch only */
 		in->max_x = abs_max(fd, ABS_MT_POSITION_X);
 		in->max_y = abs_max(fd, ABS_MT_POSITION_Y);
@@ -226,6 +240,8 @@ static void open_inputs(void)
 			in->max_x = abs_max(fd, ABS_X);
 		if (!in->max_y)
 			in->max_y = abs_max(fd, ABS_Y);
+		fprintf(stderr, "input: event%d %s, x 0-%d, y 0-%d\n", i,
+			in->name, in->max_x, in->max_y);
 		polls[n_inputs].fd = fd;
 		polls[n_inputs].events = POLLIN;
 		n_inputs++;
@@ -266,6 +282,15 @@ static void touch_point(struct input *in, int *px, int *py)
 
 static void handle(struct input *in, const struct raw_event *ev)
 {
+	/*
+	 * The first events from each device go in the log: the quickest
+	 * way to tell "no touches arrive" from "touches are misread".
+	 */
+	if (in->logged < 40) {
+		in->logged++;
+		fprintf(stderr, "event %s: type %u code %u value %d\n",
+			in->name, ev->type, ev->code, (int)ev->value);
+	}
 	switch (ev->type) {
 	case EV_KEY:
 		if (ev->code == KEY_POWER) {
