@@ -163,6 +163,50 @@ int sys_event(struct app *a, const mr_event *ev)
 	return 0;
 }
 
+/* ---- updates ---- */
+
+/* A plain screen with a message, shown at once, for slow jobs. */
+static void show_message(struct app *a, const char *title,
+			 const char *body)
+{
+	fz_context *ctx = a->ctx;
+	fz_clear_pixmap_with_value(ctx, a->pix, MR_WHITE);
+	mr_text(ctx, a->pix, a->w / 2, a->h / 2 - 40, title, MR_BOLD, 32,
+		MR_BLACK, a->w - 2 * MARGIN, MR_CENTER);
+	if (body)
+		mr_text(ctx, a->pix, a->w / 2, a->h / 2 + 10, body,
+			MR_REGULAR, 22, MR_GRAY, a->w - 2 * MARGIN,
+			MR_CENTER);
+	a->plat->present(fz_pixmap_samples(ctx, a->pix),
+			 fz_pixmap_stride(ctx, a->pix));
+}
+
+/*
+ * Install a waiting update, if there is one, and restart into it. At
+ * start-up and whenever the books come back from a computer.
+ */
+void sys_update(struct app *a)
+{
+	char msg[160] = "";
+	if (!a->plat->update || a->plat->update(0, msg, sizeof msg) != 1)
+		return;
+
+	show_message(a, "Updating MyNook", "Don't turn the Nook off.");
+	int r = a->plat->update(1, msg, sizeof msg);
+	if (r == 1) {
+		show_message(a, "MyNook updated", "Restarting...");
+		mr_library_save(&a->lib);
+		if (a->plat->power)
+			a->plat->power(MR_POWER_RESTART);
+		a->quit = 1;	/* still here: this device can't restart */
+		return;
+	}
+	if (r < 0) {
+		fprintf(stderr, "update: %s\n", msg);
+		snprintf(a->status, sizeof a->status, "%s", msg);
+	}
+}
+
 /* The books came back from the computer: look at them again. */
 static void books_back(struct app *a)
 {
@@ -174,6 +218,7 @@ static void books_back(struct app *a)
 	ui_go(a, MODE_HOME);
 	snprintf(a->status, sizeof a->status, "%d books in your library",
 		 a->lib.seen_count);
+	sys_update(a);	/* a new MyNook may have come with the books */
 }
 
 static int usb_tick(struct app *a)

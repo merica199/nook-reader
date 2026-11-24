@@ -10,6 +10,8 @@
  *   sleep     /sys/power/state and wake_lock (Android's kernel)
  *   clock     settimeofday, and /dev/rtc0 for the hardware clock
  *   USB       /sys/class/android_usb/android0 (Android's USB gadget)
+ *   updates   MyNook-update/ on the books drive, into the boot
+ *             partition
  *
  * The panel is landscape (1024x600) and the reader is portrait
  * (600x1024), so frames turn a quarter turn on the way out and touches
@@ -33,14 +35,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <linux/fb.h>
 #include <linux/input.h>
 #include <linux/rtc.h>
+#include <mupdf/fitz.h>
 #include "platform.h"
 
 static int native;	/* running as MyNook, not under Android */
@@ -651,6 +656,138 @@ static int fb_usb_share(int on)
 	return 0;
 }
 
+/* ---- updates ---- */
+
+/*
+ * A new MyNook arrives as two files in MyNook-update/ at the top of
+ * the books drive (scripts/nook-update.sh puts them there):
+ *
+ *   uAltRam          the new system, as scripts/build-os.sh made it
+ *   uAltRam.sha256   its SHA-256, as shasum prints it
+ *
+ * It's checked (U-Boot header, then the hash), written to the boot
+ * partition under a new name, read back and checked again, and only
+ * then swapped in. The version it replaces stays as uAltRam.old. The
+ * update files are deleted before the restart, so it can't install
+ * twice.
+ */
+#define UPDATE_DIR "MyNook-update"
+#define BOOT_DEV "/dev/mmcblk0p1"
+#define BOOT_DIR "/mnt/boot"
+
+/* The SHA-256 of a file as 64 hex digits; -1 if unreadable. */
+static int file_sha256(const char *path, char hex[65])
+{
+	FILE *f = fopen(path, "rb");
+	if (!f)
+		return -1;
+	fz_sha256 sha;
+	unsigned char buf[65536], d[32];
+	size_t n;
+	fz_sha256_init(&sha);
+	while ((n = fread(buf, 1, sizeof buf, f)) > 0)
+		fz_sha256_update(&sha, buf, n);
+	int bad = ferror(f);
+	fclose(f);
+	if (bad)
+		return -1;
+	fz_sha256_final(&sha, d);
+	for (int i = 0; i < 32; i++)
+		snprintf(hex + 2 * i, 3, "%02x", d[i]);
+	return 0;
+}
+
+/* Copy src to dst and push it to the disk. 0 on success. */
+static int copy_file(const char *src, const char *dst)
+{
+	FILE *in = fopen(src, "rb");
+	FILE *out = in ? fopen(dst, "wb") : NULL;
+	int ok = in && out;
+	unsigned char buf[65536];
+	size_t n;
+	while (ok && (n = fread(buf, 1, sizeof buf, in)) > 0)
+		ok = fwrite(buf, 1, n, out) == n;
+	ok = ok && !ferror(in) && fflush(out) == 0 &&
+	     fsync(fileno(out)) == 0;
+	if (in)
+		fclose(in);
+	if (out && fclose(out) != 0)
+		ok = 0;
+	return ok ? 0 : -1;
+}
+
+static int fb_update(int install, char *msg, size_t n)
+{
+	const char *drive = getenv("MYNOOK_BOOKS_DIR");
+	char img[512], sum[512], want[80] = "", got[65];
+	if (!native || !drive)
+		return 0;
+	snprintf(img, sizeof img, "%s/" UPDATE_DIR "/uAltRam", drive);
+	snprintf(sum, sizeof sum, "%s/" UPDATE_DIR "/uAltRam.sha256", drive);
+	if (access(img, F_OK) != 0)
+		return 0;
+	if (!install)
+		return 1;
+
+	/* the expected hash: the first 64 characters of the .sha256 */
+	read_line(sum, want, sizeof want);
+	want[64] = '\0';
+	if (strlen(want) != 64) {
+		snprintf(msg, n, "Update refused: no checksum file");
+		return -1;
+	}
+
+	/* a U-Boot image starts with 27 05 19 56 */
+	unsigned char magic[4] = { 0 };
+	FILE *f = fopen(img, "rb");
+	if (f) {
+		if (fread(magic, 1, 4, f) != 4)
+			magic[0] = 0;
+		fclose(f);
+	}
+	if (memcmp(magic, "\x27\x05\x19\x56", 4) != 0) {
+		snprintf(msg, n, "Update refused: not a MyNook image");
+		return -1;
+	}
+	if (file_sha256(img, got) != 0 || strcasecmp(got, want) != 0) {
+		snprintf(msg, n, "Update refused: the file is damaged. "
+			 "Copy it again.");
+		return -1;
+	}
+
+	mkdir(BOOT_DIR, 0755);
+	if (mount(BOOT_DEV, BOOT_DIR, "vfat", 0, NULL) != 0) {
+		snprintf(msg, n, "Update failed: no boot partition (%s)",
+			 strerror(errno));
+		return -1;
+	}
+	int ok = copy_file(img, BOOT_DIR "/uAltRam.new") == 0 &&
+		 file_sha256(BOOT_DIR "/uAltRam.new", got) == 0 &&
+		 strcasecmp(got, want) == 0;
+	if (ok) {
+		unlink(BOOT_DIR "/uAltRam.old");
+		rename(BOOT_DIR "/uAltRam", BOOT_DIR "/uAltRam.old");
+		ok = rename(BOOT_DIR "/uAltRam.new",
+			    BOOT_DIR "/uAltRam") == 0;
+	} else {
+		unlink(BOOT_DIR "/uAltRam.new");
+	}
+	sync();
+	umount(BOOT_DIR);
+	if (!ok) {
+		snprintf(msg, n, "Update failed writing the boot partition; "
+			 "the current version is unchanged");
+		return -1;
+	}
+
+	/* never install the same update twice */
+	unlink(img);
+	unlink(sum);
+	sync();
+	snprintf(msg, n, "MyNook updated. Restarting...");
+	return 1;
+}
+
 static int fb_init(int *width, int *height)
 {
 	native = getenv("MYNOOK") != NULL;
@@ -685,4 +822,5 @@ const mr_platform mr_platform_fb = {
 	.set_time = fb_set_time,
 	.usb_state = fb_usb_state,
 	.usb_share = fb_usb_share,
+	.update = fb_update,
 };

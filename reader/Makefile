@@ -11,10 +11,16 @@ SRCS = reader.c ui.c home.c library.c settings.c book.c books.c \
        platform_script.c
 HDRS = app.h platform.h books.h draw.h epub.h dict.h
 
+# Which build this is (Settings, Device, at the bottom): the git
+# commit, "+" if there were changes not yet committed. Worked out on
+# the Mac and passed into the container, which can't read the repo.
+VERSION ?= $(shell git describe --always --dirty=+ 2>/dev/null || \
+	     echo unknown)
+
 # ---- Mac ----
 CC = cc
 CFLAGS = -Wall -Wextra -O2 -I/opt/homebrew/include \
-	 $(shell sdl2-config --cflags)
+	 -DMR_VERSION='"$(VERSION)"' $(shell sdl2-config --cflags)
 LDFLAGS = -L/opt/homebrew/lib
 LDLIBS = -lmupdf -lmupdf-third $(shell sdl2-config --libs)
 
@@ -38,7 +44,7 @@ DOCKER = docker run --rm -v mynook-br:/br -v $(abspath ..):/src \
 	 mynook-br
 
 nook:
-	$(DOCKER) make -C /src/reader reader-nook
+	$(DOCKER) make -C /src/reader reader-nook VERSION=$(VERSION)
 
 # MuPDF for the Nook, built once (about a minute).
 mupdf-nook:
@@ -50,7 +56,8 @@ mupdf-nook:
 
 reader-nook: $(SRCS) platform_fb.c $(HDRS)
 	$(NOOK_CC) -Wall -Wextra -O2 -I$(MUPDF)/include \
-		-DMR_DEFAULT_PLATFORM=mr_platform_fb -static -s \
+		-DMR_DEFAULT_PLATFORM=mr_platform_fb \
+		-DMR_VERSION='"$(VERSION)"' -static -s \
 		-o $@ $(SRCS) platform_fb.c \
 		$(MUPDF_ARM)/libmupdf.a $(MUPDF_ARM)/libmupdf-third.a \
 		-lstdc++ -lm
@@ -58,4 +65,4 @@ reader-nook: $(SRCS) platform_fb.c $(HDRS)
 clean:
 	rm -f reader reader-nook frame-*.ppm frame-*.png
 
-.PHONY: nook mupdf-nook clean
+.PHONY: nook mupdf-nook clean reader-nook

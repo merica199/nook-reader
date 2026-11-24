@@ -13,6 +13,7 @@
 #ifndef MR_PLATFORM_H
 #define MR_PLATFORM_H
 
+#include <stddef.h>
 #include <time.h>
 
 /* The Nook's screen in portrait, for backends that pretend to be it. */
@@ -116,6 +117,15 @@ typedef struct mr_platform {
 	 * waiting for them.
 	 */
 	long long (*now_ms)(void);
+
+	/*
+	 * A new version of the system waiting to be installed (the Nook:
+	 * MyNook-update/ on the books drive). With install = 0, only
+	 * looks: 1 if one is waiting, else 0. With install = 1, installs
+	 * it: 1 if it did (the reader then restarts), 0 if there was
+	 * none, -1 if it refused or failed; msg says what happened.
+	 */
+	int (*update)(int install, char *msg, size_t n);
 } mr_platform;
 
 extern const mr_platform mr_platform_sdl;	/* Mac window */

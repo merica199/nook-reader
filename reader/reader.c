@@ -401,6 +401,9 @@ int main(int argc, char **argv)
 		       a.plat->name,
 		       a.dict ? "dictionary" : "no dictionary");
 
+		/* A new MyNook waiting? Install it before anything else. */
+		sys_update(&a);
+
 		/* Turn on into the book you were reading. */
 		ui_go(&a, MODE_HOME);
 		mr_book *last;

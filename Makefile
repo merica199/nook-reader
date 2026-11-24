@@ -7,7 +7,8 @@
 #   make nook       the reader for the Nook
 #   make os         MyNook: os/out/uAltRam
 #   make dict       the dictionary, from Wiktionary (3.4 GB download)
-#   make install    put MyNook on the Nook, over adb
+#   make install    put MyNook on the Nook, over adb (from CyanogenMod)
+#   make update     update MyNook over its USB drive (from MyNook)
 #   make run        try the reader on the Nook under Android
 #
 # From nothing: make fetch toolchain mupdf nook os dict install.
@@ -40,7 +41,10 @@ dict:
 install:
 	scripts/nook-install.sh
 
+update: os
+	scripts/nook-update.sh
+
 run:
 	scripts/nook-run.sh
 
-.PHONY: fetch reader toolchain mupdf nook os dict install run
+.PHONY: fetch reader toolchain mupdf nook os dict install update run

@@ -19,6 +19,10 @@
 #include <string.h>
 #include "app.h"
 
+#ifndef MR_VERSION
+#define MR_VERSION "unknown"
+#endif
+
 /* ---- the choices ---- */
 
 /*
@@ -408,8 +412,14 @@ void draw_settings(struct app *a)
 			a->w - 2 * MARGIN, 1, MR_LIGHT);
 	}
 
-	if (a->settings_page == 0)
+	if (a->settings_page == 0) {
 		draw_preview(a, ROW_TOP + n * ROW_H + 8, a->h - TAB_H);
+	} else {
+		/* which build this is, so an update can be checked */
+		snprintf(buf, sizeof buf, "Version %s", MR_VERSION);
+		mr_text(ctx, a->pix, a->w / 2, a->h - TAB_H - 24, buf,
+			MR_REGULAR, 18, MR_GRAY, 0, MR_CENTER);
+	}
 	ui_tabs(a);
 }
 

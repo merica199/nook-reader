@@ -231,6 +231,7 @@ int sys_event(struct app *a, const mr_event *ev);
 int sys_tick(struct app *a);
 int sys_wait_ms(struct app *a);
 void sys_sleep(struct app *a);
+void sys_update(struct app *a);
 void draw_lock(struct app *a);
 int on_lock(struct app *a, const struct action *act);
 void draw_power(struct app *a);

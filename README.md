@@ -69,6 +69,14 @@ scripts/nook-install.sh default     # and "nodefault" to undo
 
 This sets the bootloader's own switch: a one-byte file, `u-boot.altboot`, on the `/rom` partition. It's the only thing MyNook ever writes there (`/rom` holds the Nook's serial number and factory data). With it set, CyanogenMod is in the boot menu (hold n, choose **Internal eMMC Normal**), and MyNook's **Restart** comes back to MyNook.
 
+**Updating** after that needs neither CyanogenMod nor adb. Under MyNook, plug into the computer and tap **Share books**, then:
+
+```
+make update
+```
+
+That builds MyNook and copies it, with its SHA-256, into `MyNook-update/` on the Nook's drive, then ejects it. MyNook takes the drive back, checks the file, installs it, and restarts into it. The version it replaced stays on the boot partition as `uAltRam.old`. The running version is shown at the bottom of Settings, Device.
+
 To uninstall: `scripts/nook-install.sh remove`, which deletes the two files.
 
 MyNook expects the books in `My Files/Books` on the internal books partition (the "MyNOOKcolor" drive). It keeps its own files in `/data/mynook`: saved places, settings, the dictionary, and a log.

@@ -85,6 +85,12 @@ Plug the Nook into a computer. It asks **Share books?** Choose **Share books** a
 
 Reading is paused while the books are shared, and the power button waits until the drive is ejected.
 
+## Updating MyNook
+
+A new version comes the same way as books. Share the books, put the `MyNook-update` folder you were given (or that `make update` copies) at the top of the drive, and eject. The Nook shows "Updating MyNook" for a few seconds and restarts into the new version. Don't turn it off while it says that. If the file was damaged in copying, it says so and changes nothing; copy it again.
+
+Which version is running is at the bottom of Settings, Device.
+
 ## Battery
 
 The battery percentage is at the top of every screen ("76%", with a "+" while charging) and on the lock screen. The lock screen warns when it gets low. Asleep, the Nook should use very little power; how long a charge lasts under MyNook hasn't been measured yet.

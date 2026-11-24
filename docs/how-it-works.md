@@ -178,7 +178,18 @@ Android's gadget driver makes the USB port look like a device of your choosing. 
 
 **Sharing the books** unmounts p8 and writes `/dev/mmcblk0p8` into the drive's backing file (`f_mass_storage/lun0/file`). That's the card going in. Ejecting on the computer empties that file. The reader notices on its next look, mounts p8 again and rescans the library. Nothing re-enumerates, so adb stays connected throughout. The two systems never have the partition mounted at once, which is what keeps a FAT filesystem safe.
 
-## 9. Testing
+## 9. Updates
+
+An update is two files in `MyNook-update/` at the top of the books drive: the new `uAltRam` and its SHA-256 as `shasum` prints it. `make update` puts them there over the shared drive and ejects it. MyNook looks for them at start-up and whenever the books come back from a computer. The reader runs as root, so it installs the update itself:
+
+1. **Check the file:** it must start with U-Boot's magic number (`27 05 19 56`) and match the hash. A half-copied file is refused, and nothing changes.
+2. **Write it to the boot partition** as `uAltRam.new`, read it back, and check the hash again.
+3. **Keep the version it replaces** as `uAltRam.old`, then rename the new one into place. A rename on the same partition is one step.
+4. **Delete the update files**, so they can't install twice, then restart.
+
+Going back by hand: from CyanogenMod, rename `uAltRam.old` to `uAltRam` on the boot partition.
+
+## 10. Testing
 
 1. **On the Mac**: the window for trying things by hand; the script harness for repeatable runs that produce images to compare.
 2. **The ARM binary, under QEMU**: `docker run --platform linux/arm/v7` runs the Nook build itself on the Mac, through the script harness. On the same walk, its frames match the Mac's byte for byte, except where a picture is scaled (at most 6 gray levels apart, from floating point on 32-bit ARM).
