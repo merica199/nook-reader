@@ -8,6 +8,7 @@ How to use the reader on a Nook Color running MyNook. (For how it's built, see [
 
 - **Start MyNook:** press power. If MyNook has been made the default (see the README), that's all. If not, hold the **n** button while pressing power, keep holding it until the boot menu appears, and choose **Internal eMMC Alternate**.
 - **Start CyanogenMod instead:** hold n while pressing power, and choose **Internal eMMC Normal**.
+- MyNook always starts at the **lock screen**, like waking up. Past it (and the passcode, if you set one) you're back where you were when it went off: your page in the book, or Home, the Library or Settings.
 - **Sleep:** press power. The screen goes dark and the Nook sleeps. It also sleeps by itself after a while with nothing touched (Settings, Device, Sleep after).
 - **Wake:** press power (or n). The lock screen appears.
 - **Power off or restart:** hold power for a second and a half. Choose **Power off** or **Restart**. Restart starts whichever system the Nook starts by default.

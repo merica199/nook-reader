@@ -41,7 +41,7 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
   - `adb shell` under MyNook (0.2.0), as the `shell` user, after `/etc/mdev.conf` opened `/dev/ptmx`;
   - Connect to computer, then eject on the Mac: MyNook takes the books back (0.2.1);
   - plugging in while asleep lights the lock screen, from the Mac's port or a wall charger (0.2.2, once "plugged in" came from `ac/online` and `usb/online`); the lock screen goes dark after 5 seconds;
-  - holding power shows Power off, Restart, Cancel (power off itself worked in an earlier build, not re-checked);
+  - holding power shows Power off, Restart, Cancel; Power off turns the Nook off cleanly (0.2.6), and Restart comes back into MyNook (the default);
   - charging from the Mac's USB port: about 12 mA net into the battery at 98% with the screen on (`current_now`), so a computer port barely charges an awake Nook.
 
 ## Not yet verified
@@ -51,7 +51,6 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
 
 - **Plugging in or unplugging while asleep lights the screen after about 3 seconds** (2026-11-24, 0.2.4 and 0.2.5). Parked: it works, and it doesn't affect reading. What's known: the charger driver takes about 1 second to report a plug-in (the log shows a first power-supply uevent, then "plugged in" ~0.95 s later); once MyNook hears of it, it asks for the display within ~50 ms. 0.2.5 makes plugged-in sleep backlight-only and logs how long the display really takes to wake (`wait_for_fb_wake`); that log hasn't been read yet, and is the place to start.
 - **A wall charger** under MyNook: that it charges and doesn't ask about connecting.
-- **Power off** (SIGUSR2 to BusyBox init), and restart landing in CyanogenMod.
 - **Speed** on the Nook: opening books, the dictionary lookup, drawing covers, and color frames (three table lookups a pixel instead of one).
 - **Color** on the Nook's own screen (RGB565 packing of real colors; only gray had been shown on it).
 

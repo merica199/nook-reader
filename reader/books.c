@@ -76,6 +76,7 @@ static const struct {
 	{ "clock24", offsetof(mr_settings, clock24) },
 	{ "sort", offsetof(mr_settings, sort) },
 	{ "pass", offsetof(mr_settings, pass) },
+	{ "screen", offsetof(mr_settings, screen) },
 };
 #define N_SETTINGS (sizeof setting_keys / sizeof *setting_keys)
 

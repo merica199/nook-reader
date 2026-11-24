@@ -43,6 +43,62 @@ static void undim(struct app *a)
 	a->dimmed = 0;
 }
 
+/*
+ * Where you were, kept in the state file so a cold start can go back
+ * there: the screen, not the details (the book's own place is saved
+ * on every page turn).
+ */
+enum { SCREEN_HOME, SCREEN_LIBRARY, SCREEN_SETTINGS, SCREEN_BOOK };
+
+static int screen_code(enum mode m)
+{
+	switch (m) {
+	case MODE_BOOK:
+	case MODE_MENU:
+	case MODE_CONTENTS:
+	case MODE_DICT:
+		return SCREEN_BOOK;
+	case MODE_LIBRARY:
+		return SCREEN_LIBRARY;
+	case MODE_SETTINGS:
+	case MODE_CLOCK:
+		return SCREEN_SETTINGS;
+	default:
+		return SCREEN_HOME;
+	}
+}
+
+static void remember_screen(struct app *a, enum mode m)
+{
+	int code = screen_code(m);
+	if (code != a->lib.set.screen) {
+		a->lib.set.screen = code;
+		mr_library_save(&a->lib);
+	}
+}
+
+/*
+ * Starting up (MyNook only): the lock screen, as after a sleep, and
+ * past it the screen you were on when the Nook went off. The book,
+ * if that's where you were, is already open at your page.
+ */
+void sys_start_locked(struct app *a)
+{
+	static const enum mode modes[] = {
+		[SCREEN_HOME] = MODE_HOME, [SCREEN_LIBRARY] = MODE_LIBRARY,
+		[SCREEN_SETTINGS] = MODE_SETTINGS, [SCREEN_BOOK] = MODE_BOOK,
+	};
+	int code = a->lib.set.screen;
+	if (code < 0 || code > SCREEN_BOOK)
+		code = SCREEN_HOME;
+	a->unlock_to = modes[code];
+	if (a->unlock_to == MODE_BOOK && !a->doc)
+		a->unlock_to = MODE_HOME;
+	a->mode = MODE_LOCK;
+	a->last_input = app_now(a);
+	a->lock_until = a->last_input + LOCK_SHOW_MS;
+}
+
 /* The lock screen, or the passcode keypad that follows it. */
 static int locked(struct app *a)
 {
@@ -67,6 +123,8 @@ void sys_sleep(struct app *a)
 	a->dimmed = 0;
 	a->slide = a->sliding = 0;
 	a->down = 0;
+	/* a flat battery mid-sleep still knows where you were */
+	remember_screen(a, a->unlock_to);
 	if (a->plat->sleep)
 		a->plat->sleep(0);
 	/*
@@ -564,6 +622,8 @@ int on_power(struct app *a, const struct action *act)
 		return 0;
 	int i = ui_dialog_hit(a, power_body(), 3, act->x, act->y);
 	if (i == 0 || i == 1) {
+		remember_screen(a, a->menu_over == MODE_LOCK ? a->unlock_to
+							     : a->menu_over);
 		mr_library_save(&a->lib);
 		if (a->plat->power)
 			a->plat->power(i == 0 ? MR_POWER_OFF

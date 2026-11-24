@@ -412,6 +412,13 @@ int main(int argc, char **argv)
 		mr_book *last;
 		if (mr_library_recent(&a.lib, &last, 1))
 			open_book(&a, last);
+		/*
+		 * On the Nook, a cold start begins at the lock screen, like
+		 * waking, and unlocks to where you were. (The Mac window and
+		 * the test harness start straight in.)
+		 */
+		if (getenv("MYNOOK"))
+			sys_start_locked(&a);
 
 		/*
 		 * The loop: draw if something changed (never while

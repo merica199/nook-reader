@@ -85,6 +85,8 @@ typedef struct {
 	int clock24;	/* 0 "2:05 PM", 1 "14:05" */
 	int sort;	/* MR_SORT_* */
 	int pass;	/* the passcode's hash; 0 = no passcode */
+	int screen;	/* where you were: 0 Home, 1 Library, 2 Settings,
+			   3 the book (system.c) */
 } mr_settings;
 
 typedef struct {
