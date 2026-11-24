@@ -170,6 +170,8 @@ Android's kernel sleeps in two steps:
 
 MyNook takes the wake lock `mynook` at boot. To sleep, the reader writes `mem` and then releases `mynook`. The power button is wired as a wake-up source: pressing it resumes the kernel, and evdev holds its own wake lock until the reader has read that press. The reader then takes `mynook` back and writes `on`, the display comes back, and the lock screen is drawn.
 
+Plugging in or unplugging lights the screen: the kernel announces each power-supply change as a uevent on a netlink socket, which the reader listens to beside the touchscreen and buttons. Only a change between charging and not counts, since the battery's level changes all the time.
+
 "Sleep after" is one setting, the way Android (the Nook's own software) does it: the screen dims 10 seconds before sleeping, as a warning a touch cancels.
 
 Plugged into a computer, the Nook doesn't sleep by itself: suspended, the USB link drops, and the computer would see its drive vanish. A plain charger doesn't count.
@@ -178,7 +180,9 @@ Plugged into a computer, the Nook doesn't sleep by itself: suspended, the USB li
 
 Android's gadget driver makes the USB port look like a device of your choosing. MyNook sets it up once, the way CyanogenMod's `init.encore.usb.rc` does: vendor 2080, product 0002 (Barnes & Noble's), functions `mass_storage,adb`. The drive starts empty, like a card reader with no card in it.
 
-**Sharing the books** unmounts p8 and writes `/dev/mmcblk0p8` into the drive's backing file (`f_mass_storage/lun0/file`). That's the card going in. Ejecting on the computer empties that file. The reader notices on its next look, mounts p8 again and rescans the library. Nothing re-enumerates, so adb stays connected throughout. The two systems never have the partition mounted at once, which is what keeps a FAT filesystem safe.
+Plugged into a computer, MyNook asks: **Connect to computer** or **Charge only**. Only a computer gets the USB link to "CONFIGURED" (it talks to the Nook over the data lines), so a wall charger never asks.
+
+**Connecting** unmounts p8 and writes `/dev/mmcblk0p8` into the drive's backing file (`f_mass_storage/lun0/file`). That's the card going in. Ejecting on the computer empties that file. The reader notices on its next look, mounts p8 again and rescans the library. Nothing re-enumerates, so adb stays connected throughout. The two systems never have the partition mounted at once, which is what keeps a FAT filesystem safe.
 
 ## 9. Updates
 

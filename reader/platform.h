@@ -37,6 +37,7 @@ typedef enum {
 	MR_EV_TIMEOUT,	/* nothing happened before the timeout */
 	MR_EV_POWER,	/* power button pressed */
 	MR_EV_POWER_UP,	/* power button released */
+	MR_EV_CHARGER,	/* a charger or computer plugged in or unplugged */
 } mr_event_type;
 
 typedef struct {

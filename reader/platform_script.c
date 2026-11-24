@@ -19,6 +19,7 @@
  *   o        power button pressed and released
  *   O        power button held (pressed, time passes, released)
  *   U        plug into a computer, or unplug
+ *   C        plug in a charger, or unplug it
  *   E        eject the shared drive on the computer
  *   q        quit (so does the end of input)
  *
@@ -70,7 +71,7 @@ static void later(mr_event_type type, int x, int y)
 		pending[n_pending++] = (mr_event){ type, x, y };
 }
 
-static int plugged, shared;
+static int plugged, shared, charger;
 
 /*
  * The script's own clock. Nothing waits: a timeout ("." or the one
@@ -163,6 +164,11 @@ static void script_next_event(mr_event *ev, int timeout_ms)
 			printf("usb: %s\n", plugged ? "plugged" : "unplugged");
 			ev->type = MR_EV_TIMEOUT;	/* let the reader look */
 			return;
+		case 'C':
+			charger = !charger;
+			printf("charger: %s\n", charger ? "in" : "out");
+			ev->type = MR_EV_CHARGER;
+			return;
 		case 'E':
 			shared = 0;
 			printf("usb: ejected\n");
@@ -182,7 +188,7 @@ static void script_shutdown(void)
 
 static int script_battery(int *charging)
 {
-	*charging = plugged;
+	*charging = plugged || charger;
 	return 76;
 }
 

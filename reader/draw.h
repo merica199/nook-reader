@@ -52,6 +52,10 @@ int mr_text_wrap(fz_context *ctx, fz_pixmap *pix, float x, float y,
 		 float max_w, int max_lines, float line_h);
 
 /* A rectangle's outline, t pixels thick. */
+/* A lightning bolt in the box x, y, w, h (the charging sign). */
+void mr_bolt(fz_context *ctx, fz_pixmap *pix, float x, float y, float w,
+	     float h, int gray);
+
 void mr_outline(fz_context *ctx, fz_pixmap *pix, int x, int y, int w,
 		int h, int t, int gray);
 

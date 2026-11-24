@@ -39,11 +39,13 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <linux/fb.h>
 #include <linux/input.h>
+#include <linux/netlink.h>
 #include <linux/rtc.h>
 #include <mupdf/fitz.h>
 #include "platform.h"
@@ -213,7 +215,8 @@ struct input {
 };
 
 static struct input inputs[MAX_INPUTS];
-static struct pollfd polls[MAX_INPUTS];
+/* the inputs, then one more: the kernel's uevents (see open_uevents) */
+static struct pollfd polls[MAX_INPUTS + 1];
 static int n_inputs;
 
 static int abs_max(int fd, int code)
@@ -406,10 +409,63 @@ static void handle(struct input *in, const struct raw_event *ev)
 	}
 }
 
+/*
+ * Plugging in: the kernel announces every change to a power supply
+ * as a "uevent", a message on a netlink socket (a channel from the
+ * kernel to programs). The battery's level changes all the time, so
+ * only a change in charging or not counts, as MR_EV_CHARGER.
+ */
+static int uevent_fd = -1;
+static int was_charging = -1;
+static int fb_battery(int *charging);
+
+static void open_uevents(void)
+{
+	int fd = socket(AF_NETLINK, SOCK_DGRAM | SOCK_CLOEXEC,
+			NETLINK_KOBJECT_UEVENT);
+	struct sockaddr_nl sa = { .nl_family = AF_NETLINK, .nl_groups = 1 };
+	if (fd < 0 || bind(fd, (struct sockaddr *)&sa, sizeof sa) != 0) {
+		perror("uevents");
+		if (fd >= 0)
+			close(fd);
+		return;
+	}
+	uevent_fd = fd;
+	fb_battery(&was_charging);
+}
+
+static void read_uevents(void)
+{
+	char buf[4096];
+	ssize_t n = recv(uevent_fd, buf, sizeof buf - 1, MSG_DONTWAIT);
+	if (n <= 0)
+		return;
+	buf[n] = '\0';
+	/* the message is NUL-separated KEY=value lines */
+	int power = 0;
+	for (char *p = buf; p < buf + n; p += strlen(p) + 1)
+		if (strcmp(p, "SUBSYSTEM=power_supply") == 0)
+			power = 1;
+	if (!power)
+		return;
+	int charging = 0;
+	fb_battery(&charging);
+	if (charging != was_charging) {
+		was_charging = charging;
+		push(MR_EV_CHARGER, 0, 0);
+	}
+}
+
 static void fb_next_event(mr_event *ev, int timeout_ms)
 {
 	while (q_count == 0) {
-		int r = n_inputs ? poll(polls, n_inputs, timeout_ms) : -1;
+		int n = n_inputs;
+		if (uevent_fd >= 0) {
+			polls[n].fd = uevent_fd;
+			polls[n].events = POLLIN;
+			n++;
+		}
+		int r = n ? poll(polls, n, timeout_ms) : -1;
 		if (r < 0) {
 			ev->type = MR_EV_QUIT;
 			return;
@@ -423,6 +479,8 @@ static void fb_next_event(mr_event *ev, int timeout_ms)
 			ev->type = MR_EV_TIMEOUT;
 			return;
 		}
+		if (uevent_fd >= 0 && (polls[n_inputs].revents & POLLIN))
+			read_uevents();
 		for (int i = 0; i < n_inputs; i++) {
 			if (!(polls[i].revents & POLLIN))
 				continue;
@@ -794,6 +852,7 @@ static int fb_init(int *width, int *height)
 	if (open_screen() != 0)
 		return -1;
 	open_inputs();
+	open_uevents();
 	*width = pw;
 	*height = ph;
 	return 0;

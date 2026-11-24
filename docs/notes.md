@@ -44,6 +44,8 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
 - **`adb shell` under MyNook.** Copying files works; the shell was refused, most likely because mdev made `/dev/ptmx` root-only and adbd runs as `shell`. `/etc/mdev.conf` opens it in 0.2.0.
 - **Sleep** through early suspend with no Android running, and the power button waking it.
 - **USB sharing** under MyNook: eject detection and remounting (the drive appearing on the Mac is verified).
+- **Plugging in while asleep** waking the screen: whether this kernel wakes from deep sleep on a charger. If it doesn't, the screen lights the next time something else wakes it.
+- **A wall charger** under MyNook: charges, lights the lock screen, and doesn't ask about connecting.
 - **Power off** (SIGUSR2 to BusyBox init), and restart landing in CyanogenMod.
 - **Speed** on the Nook: opening books, the dictionary lookup, drawing covers, and color frames (three table lookups a pixel instead of one).
 - **Color** on the Nook's own screen (RGB565 packing of real colors; only gray had been shown on it).

@@ -132,6 +132,47 @@ void mr_outline(fz_context *ctx, fz_pixmap *pix, int x, int y, int w,
 	mr_fill(ctx, pix, x + w - t, y, t, h, gray);
 }
 
+/*
+ * A lightning bolt filling the box x, y, w, h: a filled path, drawn
+ * by MuPDF like a page's own shapes. The points are fractions of the
+ * box, clockwise from the top.
+ */
+void mr_bolt(fz_context *ctx, fz_pixmap *pix, float x, float y, float w,
+	     float h, int gray)
+{
+	static const float pt[][2] = {
+		{ 0.62f, 0.00f }, { 0.18f, 0.56f }, { 0.46f, 0.56f },
+		{ 0.36f, 1.00f }, { 0.82f, 0.42f }, { 0.54f, 0.42f },
+	};
+	fz_path *path = NULL;
+	fz_device *dev = NULL;
+	fz_var(path);
+	fz_var(dev);
+	fz_try(ctx) {
+		path = fz_new_path(ctx);
+		for (size_t i = 0; i < sizeof pt / sizeof *pt; i++) {
+			float px = x + pt[i][0] * w, py = y + pt[i][1] * h;
+			if (i == 0)
+				fz_moveto(ctx, path, px, py);
+			else
+				fz_lineto(ctx, path, px, py);
+		}
+		fz_closepath(ctx, path);
+		dev = fz_new_draw_device(ctx, fz_identity, pix);
+		float color = gray / 255.0f;
+		fz_fill_path(ctx, dev, path, 0, fz_identity,
+			     fz_device_gray(ctx), &color, 1.0f,
+			     fz_default_color_params);
+		fz_close_device(ctx, dev);
+	}
+	fz_always(ctx) {
+		fz_drop_device(ctx, dev);
+		fz_drop_path(ctx, path);
+	}
+	fz_catch(ctx)
+		fz_rethrow(ctx);
+}
+
 int mr_text_wrap(fz_context *ctx, fz_pixmap *pix, float x, float y,
 		 const char *s, mr_weight wt, float size, int gray,
 		 float max_w, int max_lines, float line_h)

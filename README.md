@@ -34,7 +34,8 @@ The installer checks before writing anything: it refuses unless the device repor
   - Reading: text size (7 to 28 pt), font (the book's own, serif or sans), line spacing and margins, with a live preview. These are the defaults; any book can have its own instead ("For: This book"), and keeps them.
   - Device: dark mode (on by default), brightness, sleep after (30 seconds to 5 minutes; the screen dims 10 seconds before), 12 or 24 hour clock, the date and time, and the passcode.
 - **Lock screen:** a big clock, the date and the battery, and nothing about what you're reading; slide the knob across to unlock, with an optional 4 to 6 digit passcode. The power button sleeps and wakes; hold it for Power off or Restart.
-- **USB drive:** plug into a computer and choose "Share books". The books appear as a drive; eject it when you're done and reading picks up again.
+- **USB:** plug into a computer and choose **Connect to computer** (or **Charge only**). The Nook's storage appears as a drive, for books or a MyNook update; eject it when you're done and reading picks up again. A wall charger never asks.
+- **Charging:** a battery icon by the time on every screen, with a lightning bolt while charging. Plugging in or unplugging lights up the lock screen, like a phone.
 - **Progress** is weighted by chapter size, so 50% means halfway through the text, not halfway through the chapters. Your place is saved on every page turn.
 
 ## Trying it on a Mac
@@ -69,7 +70,7 @@ scripts/nook-install.sh default     # and "nodefault" to undo
 
 This sets the bootloader's own switch: a one-byte file, `u-boot.altboot`, on the `/rom` partition. It's the only thing MyNook ever writes there (`/rom` holds the Nook's serial number and factory data). With it set, CyanogenMod is in the boot menu (hold n, choose **Internal eMMC Normal**), and MyNook's **Restart** comes back to MyNook.
 
-**Updating** after that needs neither CyanogenMod nor adb. Under MyNook, plug into the computer and tap **Share books**, then:
+**Updating** after that needs neither CyanogenMod nor adb. Under MyNook, plug into the computer and tap **Connect to computer**, then:
 
 ```
 make update

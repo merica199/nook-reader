@@ -56,8 +56,33 @@ void ui_date_time(struct app *a, time_t t, char *buf, size_t n)
 }
 
 /*
- * The time and the battery, right-aligned at right: "2:05 PM   76%".
- * Every screen's title bar has it, and the reading menu.
+ * A battery, x, y, w, h (the nub on the right is extra): filled to
+ * pct, with a lightning bolt over it while charging.
+ */
+void ui_battery(struct app *a, int x, int y, int w, int h, int pct,
+		int charging, int gray)
+{
+	fz_context *ctx = a->ctx;
+	int t = h >= 40 ? 4 : 2;	/* line thickness */
+	if (pct < 0)
+		pct = 0;
+	if (pct > 100)
+		pct = 100;
+	mr_outline(ctx, a->pix, x, y, w, h, t, gray);
+	mr_fill(ctx, a->pix, x + w, y + h / 4, t + 1, h / 2, gray);
+	int in = t + 2;
+	int fill = (w - 2 * in) * pct / 100;
+	mr_fill(ctx, a->pix, x + in, y + in, fill, h - 2 * in,
+		charging ? MR_LIGHT : gray);
+	if (charging)
+		mr_bolt(ctx, a->pix, x + w / 2 - h * 0.4f, y + 1, h * 0.8f,
+			h - 2, MR_BLACK);
+}
+
+/*
+ * The time and the battery, right-aligned at right: "2:05 PM [===] 76%",
+ * the battery with a bolt while charging. Every screen's title bar
+ * has it, and the reading menu.
  */
 void ui_status(struct app *a, int right, int baseline, int gray)
 {
@@ -65,13 +90,18 @@ void ui_status(struct app *a, int right, int baseline, int gray)
 	ui_time(a, app_time(a), tod, sizeof tod);
 	int charging = 0;
 	int pct = a->plat->battery ? a->plat->battery(&charging) : -1;
-	if (pct >= 0)
-		snprintf(buf, sizeof buf, "%s   %d%%%s", tod, pct,
-			 charging ? "+" : "");
-	else
-		snprintf(buf, sizeof buf, "%s", tod);
-	mr_text(a->ctx, a->pix, right, baseline, buf, MR_REGULAR, 20, gray,
-		0, MR_RIGHT);
+	int x = right;
+	if (pct >= 0) {
+		snprintf(buf, sizeof buf, "%d%%", pct);
+		mr_text(a->ctx, a->pix, x, baseline, buf, MR_REGULAR, 20,
+			gray, 0, MR_RIGHT);
+		x -= (int)mr_text_width(a->ctx, buf, MR_REGULAR, 20) + 8;
+		ui_battery(a, x - 34, baseline - 16, 30, 17, pct, charging,
+			   gray);
+		x -= 34 + 14;
+	}
+	mr_text(a->ctx, a->pix, x, baseline, tod, MR_REGULAR, 20, gray, 0,
+		MR_RIGHT);
 	struct tm tm;
 	time_t t = app_time(a);
 	localtime_r(&t, &tm);

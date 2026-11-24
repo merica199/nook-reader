@@ -124,6 +124,17 @@ int sys_event(struct app *a, const mr_event *ev)
 		sys_sleep(a);
 		return 2;
 
+	case MR_EV_CHARGER:
+		/* plugging in or out lights the screen, like a phone */
+		a->last_input = now;
+		if (a->asleep) {
+			wake(a);
+			return 1;
+		}
+		if (locked(a))
+			a->lock_until = now + LOCK_SHOW_MS;
+		return 1;	/* the battery icon changed */
+
 	case MR_EV_TIMEOUT:
 		if (a->power_down && !a->power_long &&
 		    now - a->power_at >= POWER_HOLD_MS) {
@@ -225,6 +236,13 @@ static int usb_tick(struct app *a)
 {
 	int st = a->plat->usb_state();
 	int was = a->usb;
+	/*
+	 * Plugged into a computer while locked: ask once it's unlocked,
+	 * not never. Leaving a->usb as it was makes the next look after
+	 * unlocking see it as new.
+	 */
+	if (st == MR_USB_COMPUTER && was == MR_USB_NONE && locked(a))
+		return 0;
 	a->usb = st;
 
 	if (a->usb_sharing && st != MR_USB_SHARING) {
@@ -373,15 +391,8 @@ void draw_lock(struct app *a)
 
 	fz_clear_pixmap_with_value(ctx, pix, MR_WHITE);
 
-	/* battery, top right */
 	int charging = 0;
 	int pct = a->plat->battery ? a->plat->battery(&charging) : -1;
-	if (pct >= 0) {
-		snprintf(buf, sizeof buf, "%s%d%%",
-			 charging ? "Charging, " : "", pct);
-		mr_text(ctx, pix, a->w - MARGIN, 48, buf, MR_REGULAR, 22,
-			MR_GRAY, 0, MR_RIGHT);
-	}
 
 	/* the time, big; AM or PM beside it, small */
 	char tod[16], ampm[4] = "";
@@ -409,6 +420,19 @@ void draw_lock(struct app *a)
 	snprintf(buf, sizeof buf, "%s, %s %d", day, month, tm.tm_mday);
 	mr_text(ctx, pix, a->w / 2, TIME_Y + 60, buf, MR_REGULAR, 30,
 		MR_GRAY, 0, MR_CENTER);
+
+	/* the battery, big, with "Charging" while it is */
+	if (pct >= 0) {
+		snprintf(buf, sizeof buf, "%s%d%%",
+			 charging ? "Charging, " : "", pct);
+		int bw = 96, bh = 44, gap = 18;
+		float tw2 = mr_text_width(ctx, buf, MR_REGULAR, 28);
+		int bx = (int)((a->w - bw - 6 - gap - tw2) / 2);
+		int by = TIME_Y + 140;
+		ui_battery(a, bx, by, bw, bh, pct, charging, MR_BLACK);
+		mr_text(ctx, pix, bx + bw + 6 + gap, by + bh / 2 + 10, buf,
+			MR_REGULAR, 28, MR_BLACK, 0, MR_LEFT);
+	}
 
 		if (pct >= 0 && pct < 15 && !charging)
 		mr_text(ctx, pix, a->w / 2, track_y(a) - 24,
@@ -671,10 +695,16 @@ int on_clock(struct app *a, const struct action *act)
 
 /* ---- USB ---- */
 
+/*
+ * Plugged into a computer (a wall charger never asks): connect, so
+ * the computer sees the Nook's storage as a drive, for adding books
+ * or a MyNook update; or just charge.
+ */
 static const char *usb_body =
-	"Share your books so the computer can add or remove them? "
-	"Reading stops until you eject the drive.";
-static const char *usb_buttons[] = { "Share books", "Not now" };
+	"Connect to add books or a MyNook update from the computer. "
+	"Reading pauses until you eject the Nook there.";
+static const char *usb_buttons[] = { "Connect to computer",
+				     "Charge only" };
 
 void draw_usb(struct app *a)
 {
@@ -687,15 +717,15 @@ void draw_usb(struct app *a)
 		return;
 	}
 	fz_clear_pixmap_with_value(ctx, a->pix, MR_WHITE);
-	ui_header(a, "USB drive");
+	ui_header(a, "Computer");
 	mr_text(ctx, a->pix, a->w / 2, a->h / 2 - 80,
-		"Your books are on the computer", MR_BOLD, 30, MR_BLACK,
+		"Connected to computer", MR_BOLD, 30, MR_BLACK,
 		a->w - 2 * MARGIN, MR_CENTER);
 	mr_text_wrap(ctx, a->pix, MARGIN + 20, a->h / 2 - 20,
-		     "Add or remove books there, then eject the NOOK "
-		     "drive. Reading picks up again as soon as it's "
-		     "ejected or unplugged.", MR_REGULAR, 22, MR_GRAY,
-		     a->w - 2 * MARGIN - 40, 5, 32);
+		     "Add books or a MyNook update on the computer, then "
+		     "eject the NOOK drive there. Reading picks up again "
+		     "as soon as it's ejected or unplugged.", MR_REGULAR,
+		     22, MR_GRAY, a->w - 2 * MARGIN - 40, 5, 32);
 }
 
 int on_usb(struct app *a, const struct action *act)

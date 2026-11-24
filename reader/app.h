@@ -194,6 +194,8 @@ time_t app_time(const struct app *a);
 void ui_time(struct app *a, time_t t, char *buf, size_t n);
 void ui_date_time(struct app *a, time_t t, char *buf, size_t n);
 void ui_status(struct app *a, int right, int baseline, int gray);
+void ui_battery(struct app *a, int x, int y, int w, int h, int pct,
+		int charging, int gray);
 void ui_header(struct app *a, const char *title);
 void ui_header_to(struct app *a, const char *title, int right);
 void ui_dialog(struct app *a, const char *title, const char *body,
