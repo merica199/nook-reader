@@ -52,7 +52,9 @@ Click to tap, hold the mouse button still for half a second to look up a word, d
 
 ## Putting it on a Nook
 
-You need a Nook Color running CyanogenMod 10.2 with root over adb. Everything here was built and tested on one such Nook. With the Nook plugged in and CyanogenMod running:
+**Without building anything:** download `MyNook-install-<version>.zip` from the [Releases page](https://github.com/merica199/nook-reader/releases) and follow its `INSTALL.txt`. Updates after that are `MyNook-update-<version>.zip`, copied onto the Nook's drive (see the [user guide](docs/user-guide.md#updating-mynook)).
+
+**From source:** you need a Nook Color running CyanogenMod 10.2 with root over adb. Everything here was built and tested on one such Nook. With the Nook plugged in and CyanogenMod running:
 
 ```
 make install
@@ -94,6 +96,8 @@ make os          # the reader for the Nook, then MyNook: os/out/uAltRam
 make dict        # the dictionary: a 3.4 GB download, then 31 seconds
 make install     # onto the Nook, over adb
 ```
+
+`scripts/make-release.sh` makes a release's files (the update, the install kit, and the third-party source the licenses require) from a clean commit, in `os/out/release/`.
 
 `make run` tries a new reader build on the Nook without restarting. It pauses Android, runs the reader, and brings Android back when you quit.
 

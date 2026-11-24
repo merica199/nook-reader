@@ -86,7 +86,14 @@ Reading is paused while the books are shared, and the power button waits until t
 
 ## Updating MyNook
 
-A new version comes the same way as books. Connect to the computer, put the `MyNook-update` folder you were given (or that `make update` copies) at the top of the drive, and eject. The Nook shows "Updating MyNook" for a few seconds and restarts into the new version. Don't turn it off while it says that. If the file was damaged in copying, it says so and changes nothing; copy it again.
+A new version comes the same way as books:
+
+1. Download `MyNook-update-<version>.zip` from the [Releases page](https://github.com/merica199/nook-reader/releases) and unzip it. You get a folder called `MyNook-update`.
+2. Plug the Nook into the computer and choose **Connect to computer**.
+3. Copy the `MyNook-update` folder to the top of the Nook's drive (beside `My Files`, not inside it).
+4. Eject the drive.
+
+The Nook takes the drive back, finds the update, and installs it. The Nook shows "Updating MyNook" for a few seconds and restarts into the new version. Don't turn it off while it says that. If the file was damaged in copying, it says so and changes nothing; copy it again.
 
 Which version is running is at the bottom of Settings, Device.
 
