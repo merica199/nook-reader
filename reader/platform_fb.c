@@ -192,9 +192,18 @@ struct input {
 	char name[64];		/* the driver's name, e.g. "cyttsp-i2c" */
 	int logged;		/* raw events written to the log so far */
 	int max_x, max_y;	/* touch ranges, to scale to the panel */
-	int slot;		/* multitouch: which finger is reporting */
+	/*
+	 * Multitouch (protocol B) is like an array of per-finger slots:
+	 * the driver says "now slot N", then that finger's fields. slot
+	 * is the one being reported; finger is the slot of the finger
+	 * being followed (-1: none). Whichever slot the first finger
+	 * lands in is the one followed: the Nook's driver doesn't always
+	 * use slot 0.
+	 */
+	int slot;
+	int finger;
 	int touching;
-	int x, y;		/* raw position of finger 0 */
+	int x, y;		/* raw position of the followed finger */
 	int want_down, want_up, moved;
 };
 
@@ -233,6 +242,11 @@ static void open_inputs(void)
 			close(fd);
 			continue;
 		}
+		/* the slot the driver is on now, not always 0 */
+		struct input_absinfo slot;
+		if (ioctl(fd, EVIOCGABS(ABS_MT_SLOT), &slot) == 0)
+			in->slot = slot.value;
+		in->finger = -1;
 		/* the Nook's touchscreen is multitouch only */
 		in->max_x = abs_max(fd, ABS_MT_POSITION_X);
 		in->max_y = abs_max(fd, ABS_MT_POSITION_Y);
@@ -327,27 +341,38 @@ static void handle(struct input *in, const struct raw_event *ev)
 			in->slot = ev->value;
 			break;
 		case ABS_MT_TRACKING_ID:
-			/* only the first finger counts */
-			if (in->slot != 0)
-				break;
-			if (ev->value >= 0)
+			/*
+			 * A finger lands (an id) or lifts (-1). Only the
+			 * first finger down is followed; others are ignored
+			 * until it lifts.
+			 */
+			if (ev->value >= 0 && in->finger < 0) {
+				in->finger = in->slot;
 				in->want_down = 1;
-			else
+			} else if (ev->value < 0 && in->slot == in->finger) {
+				in->finger = -1;
 				in->want_up = 1;
+			}
 			break;
 		case ABS_MT_POSITION_X:
-		case ABS_X:
-			if (in->slot == 0) {
+			if (in->slot == in->finger) {
 				in->x = ev->value;
 				in->moved = 1;
 			}
 			break;
 		case ABS_MT_POSITION_Y:
-		case ABS_Y:
-			if (in->slot == 0) {
+			if (in->slot == in->finger) {
 				in->y = ev->value;
 				in->moved = 1;
 			}
+			break;
+		case ABS_X:	/* single-touch screens: one finger */
+			in->x = ev->value;
+			in->moved = 1;
+			break;
+		case ABS_Y:
+			in->y = ev->value;
+			in->moved = 1;
 			break;
 		}
 		break;
