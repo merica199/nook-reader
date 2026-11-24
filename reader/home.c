@@ -11,17 +11,21 @@
 #include "app.h"
 #include "epub.h"
 
-/* The "continue reading" card. */
-#define CARD_TOP (HEAD_H + 64)
-#define BIG_W 180
-#define BIG_H 270
+/* The "continue reading" card: one row, a small cover and the text. */
+#define CARD_TOP (HEAD_H + 56)
+#define BIG_W 80
+#define BIG_H 120
 
-/* The "recently read" row. */
-#define RECENT_LABEL_Y (CARD_TOP + BIG_H + 72)
-#define RECENT_TOP (RECENT_LABEL_Y + 20)
-#define SMALL_W 150
-#define SMALL_H 225
-#define N_RECENT 3
+/* "Recently read": a grid of covers, N_COLS across, N_ROWS down. */
+#define RECENT_LABEL_Y (CARD_TOP + BIG_H + 46)
+#define RECENT_TOP (RECENT_LABEL_Y + 18)
+#define N_COLS 4
+#define N_ROWS 2
+#define N_RECENT (N_COLS * N_ROWS)
+#define GAP 16
+#define SMALL_W ((MR_NOOK_W - 2 * MARGIN - (N_COLS - 1) * GAP) / N_COLS)
+#define SMALL_H (SMALL_W * 3 / 2)
+#define CELL_H (SMALL_H + 56)	/* cover, then two lines of title */
 
 /* ---- covers ---- */
 
@@ -36,8 +40,7 @@ static fz_pixmap *render_cover(fz_context *ctx, fz_image *img, int w,
 	if (dw < 1 || dh < 1)
 		return NULL;
 
-	fz_pixmap *pix = fz_new_pixmap(ctx, fz_device_gray(ctx), dw, dh,
-				       NULL, 0);
+	fz_pixmap *pix = mr_new_pixmap(ctx, dw, dh);
 	fz_device *dev = NULL;
 	fz_var(dev);
 	fz_try(ctx) {
@@ -134,10 +137,13 @@ static void cover_frame(struct app *a, mr_book *b, int x, int y, int w,
 			   c->pix->h + 2, 1, MR_LIGHT);
 		return;
 	}
+	/* the stand-in's title, sized to the card */
+	int size = w > 160 ? 22 : w > 100 ? 16 : 12;
+	int pad = w > 100 ? 12 : 6;
 	mr_outline(a->ctx, a->pix, x, y, w, h, 2, MR_BLACK);
-	mr_text_wrap(a->ctx, a->pix, x + 12, y + 40, b->title, MR_BOLD,
-		     w > 160 ? 22 : 18, MR_BLACK, w - 24, 5,
-		     w > 160 ? 28 : 23);
+	mr_text_wrap(a->ctx, a->pix, x + pad, y + pad + size, b->title,
+		     MR_BOLD, size, MR_BLACK, w - 2 * pad, 5,
+		     size * 5 / 4);
 }
 
 static void blit(struct app *a, fz_pixmap *src, int x, int y)
@@ -147,8 +153,8 @@ static void blit(struct app *a, fz_pixmap *src, int x, int y)
 	unsigned char *d = fz_pixmap_samples(a->ctx, a->pix);
 	unsigned char *s = fz_pixmap_samples(a->ctx, src);
 	for (int r = 0; r < src->h && y + r < a->h; r++)
-		memcpy(d + (y + r) * stride + x, s + r * sstride,
-		       src->w);
+		memcpy(d + (y + r) * stride + x * src->n,
+		       s + r * sstride, src->w * src->n);
 }
 
 /*
@@ -177,16 +183,21 @@ void cover_picture(struct app *a, mr_book *b, int x, int y, int w,
 /* Books read, most recent first; items are sorted that way. */
 static mr_book *read_book(struct app *a, int n)
 {
-	if (n < a->lib.seen_count && a->lib.items[n].last_read > 0)
-		return &a->lib.items[n];
-	return NULL;
+	mr_book *recent[N_RECENT + 1];
+	int k = mr_library_recent(&a->lib, recent, N_RECENT + 1);
+	return n < k ? recent[n] : NULL;
 }
 
+/* Where recent book i's cover goes. */
 static int small_x(struct app *a, int i)
 {
-	int gap = (a->w - 2 * MARGIN - N_RECENT * SMALL_W) /
-		  (N_RECENT - 1);
-	return MARGIN + i * (SMALL_W + gap);
+	(void)a;
+	return MARGIN + (i % N_COLS) * (SMALL_W + GAP);
+}
+
+static int small_y(int i)
+{
+	return RECENT_TOP + (i / N_COLS) * CELL_H;
 }
 
 /* The button on the welcome screen, before any book is read. */
@@ -221,29 +232,32 @@ void draw_home(struct app *a)
 		return;
 	}
 
-	/* Continue reading. */
-	mr_text(ctx, pix, MARGIN, HEAD_H + 44, "Continue reading",
+	/* Continue reading: one row, tap anywhere on it. */
+	mr_text(ctx, pix, MARGIN, HEAD_H + 40, "Continue reading",
 		MR_REGULAR, 20, MR_GRAY, 0, MR_LEFT);
 	cover_frame(a, b, MARGIN, CARD_TOP, BIG_W, BIG_H);
 
-	int tx = MARGIN + BIG_W + 24, tw = a->w - tx - MARGIN;
-	int lines = mr_text_wrap(ctx, pix, tx, CARD_TOP + 30, b->title,
-				 MR_BOLD, 28, MR_BLACK, tw, 4, 34);
-	mr_text(ctx, pix, tx, CARD_TOP + 30 + lines * 34 + 4, b->author,
-		MR_REGULAR, 20, MR_GRAY, tw, MR_LEFT);
+	int tx = MARGIN + BIG_W + 20, tw = a->w - tx - MARGIN;
+	int lines = mr_text_wrap(ctx, pix, tx, CARD_TOP + 26, b->title,
+				 MR_BOLD, 24, MR_BLACK, tw, 2, 29);
+	mr_text(ctx, pix, tx, CARD_TOP + 26 + lines * 29, b->author,
+		MR_REGULAR, 18, MR_GRAY, tw, MR_LEFT);
 
 	int pct = mr_book_percent(b);
 	if (pct < 0)
 		pct = 0;
-	int bar_y = CARD_TOP + BIG_H - 46;
-	mr_fill(ctx, pix, tx, bar_y, tw, 8, MR_LIGHT);
-	mr_fill(ctx, pix, tx, bar_y, tw * pct / 100, 8, MR_BLACK);
 	if (pct >= 100)
 		snprintf(buf, sizeof buf, "Finished");
 	else
-		snprintf(buf, sizeof buf, "%d%% read", pct);
-	mr_text(ctx, pix, tx, bar_y + 38, buf, MR_REGULAR, 20, MR_GRAY, 0,
-		MR_LEFT);
+		snprintf(buf, sizeof buf, "%d%%", pct);
+	int bar_y = CARD_TOP + BIG_H - 12;
+	int bar_w = tw - 70;
+	mr_fill(ctx, pix, tx, bar_y, bar_w, 6, MR_LIGHT);
+	mr_fill(ctx, pix, tx, bar_y, bar_w * pct / 100, 6, MR_BLACK);
+	mr_text(ctx, pix, a->w - MARGIN, bar_y + 8, buf, MR_REGULAR, 18,
+		MR_GRAY, 0, MR_RIGHT);
+	mr_fill(ctx, pix, MARGIN, CARD_TOP + BIG_H + 14, a->w - 2 * MARGIN,
+		1, MR_LIGHT);
 
 	/* Recently read: the books before this one. */
 	mr_text(ctx, pix, MARGIN, RECENT_LABEL_Y, "Recently read",
@@ -256,11 +270,10 @@ void draw_home(struct app *a)
 		mr_book *r = read_book(a, i + 1);
 		if (!r)
 			break;
-		int x = small_x(a, i);
-		cover_frame(a, r, x, RECENT_TOP, SMALL_W, SMALL_H);
-		mr_text_wrap(ctx, pix, x, RECENT_TOP + SMALL_H + 28,
-			     r->title, MR_REGULAR, 18, MR_BLACK, SMALL_W,
-			     2, 22);
+		int x = small_x(a, i), y = small_y(i);
+		cover_frame(a, r, x, y, SMALL_W, SMALL_H);
+		mr_text_wrap(ctx, pix, x, y + SMALL_H + 22, r->title,
+			     MR_REGULAR, 16, MR_BLACK, SMALL_W, 2, 19);
 	}
 
 	snprintf(buf, sizeof buf, "%d books in your library",
@@ -287,7 +300,8 @@ void draw_home_covers(struct app *a)
 			break;
 		c = get_cover(a, r, SMALL_W, SMALL_H);
 		if (c->pix) {
-			cover_spot(c, small_x(a, i), RECENT_TOP, &cx, &cy);
+			cover_spot(c, small_x(a, i), small_y(i), &cx,
+				   &cy);
 			blit(a, c->pix, cx, cy);
 		}
 	}
@@ -332,13 +346,12 @@ int on_home(struct app *a, const struct action *act)
 	if (y >= CARD_TOP && y < CARD_TOP + BIG_H)
 		return open_or_resume(a, b);
 
-	if (y >= RECENT_TOP && y < RECENT_TOP + SMALL_H + 60) {
-		for (int i = 0; i < N_RECENT; i++) {
-			mr_book *r = read_book(a, i + 1);
-			int sx = small_x(a, i);
-			if (r && x >= sx && x < sx + SMALL_W)
-				return open_or_resume(a, r);
-		}
+	for (int i = 0; i < N_RECENT; i++) {
+		mr_book *r = read_book(a, i + 1);
+		int sx = small_x(a, i), sy = small_y(i);
+		if (r && x >= sx && x < sx + SMALL_W && y >= sy &&
+		    y < sy + CELL_H)
+			return open_or_resume(a, r);
 	}
 	return 0;
 }

@@ -6,7 +6,7 @@
 /os/out/
 /reader/reader
 /reader/reader-nook
-/reader/frame-*.pgm
+/reader/frame-*.ppm
 /reader/frame-*.png
 __pycache__/
 

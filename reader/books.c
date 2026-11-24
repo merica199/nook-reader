@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "books.h"
+#include "epub.h"
 
 /*
  * First line of the state file, then the format version. Version 2
@@ -14,8 +15,8 @@
  * files still load (their percent is worked out the old way).
  */
 #define STATE_MAGIC "myreader-state "
-#define STATE_VERSION 2
-#define STATE_FIELDS 11
+#define STATE_VERSION 3
+#define STATE_FIELDS 12
 
 /* How deep to look for books: Calibre uses author/title/book.epub. */
 #define MAX_DEPTH 6
@@ -74,6 +75,8 @@ static const struct {
 	{ "dim", offsetof(mr_settings, dim) },
 	{ "sleep", offsetof(mr_settings, sleep) },
 	{ "clock24", offsetof(mr_settings, clock24) },
+	{ "sort", offsetof(mr_settings, sort) },
+	{ "pass", offsetof(mr_settings, pass) },
 };
 #define N_SETTINGS (sizeof setting_keys / sizeof *setting_keys)
 
@@ -138,8 +141,11 @@ void mr_library_load(mr_library *lib, const char *state_path)
 				break;
 			*p++ = 0;
 		}
-		/* version 1 lines stop before the percent */
-		if (n != STATE_FIELDS && n != STATE_FIELDS - 1)
+		/*
+		 * Older versions stop sooner: version 1 before the
+		 * percent, version 2 before the published date.
+		 */
+		if (n < STATE_FIELDS - 2)
 			continue;
 
 		mr_book *b = add_book(lib);
@@ -153,8 +159,10 @@ void mr_library_load(mr_library *lib, const char *state_path)
 		b->last_read = strtoll(field[7], NULL, 10);
 		b->title = dup_clean(field[8]);
 		b->author = dup_clean(field[9]);
-		if (n == STATE_FIELDS)
+		if (n > 10)
 			b->percent = atoi(field[10]);
+		if (n > 11)
+			b->published = dup_clean(field[11]);
 	}
 	fclose(f);
 }
@@ -165,7 +173,7 @@ void mr_library_load(mr_library *lib, const char *state_path)
  */
 static void read_metadata(fz_context *ctx, mr_book *b)
 {
-	char title[512] = "", author[512] = "";
+	char title[512] = "", author[512] = "", date[16];
 	fz_document *doc = NULL;
 	fz_var(doc);
 
@@ -194,6 +202,10 @@ static void read_metadata(fz_context *ctx, mr_book *b)
 	free(b->author);
 	b->title = dup_clean(title);
 	b->author = dup_clean(author);
+
+	mr_epub_date(ctx, b->path, date, sizeof date);
+	free(b->published);
+	b->published = dup_clean(date);
 }
 
 static int is_epub(const char *name)
@@ -243,6 +255,11 @@ static void scan_dir(fz_context *ctx, mr_library *lib, const char *dir,
 			b->size = st.st_size;
 			b->mtime = st.st_mtime;
 			read_metadata(ctx, b);
+		} else if (!b->published) {
+			/* saved before dates were kept: just the date */
+			char date[16];
+			mr_epub_date(ctx, b->path, date, sizeof date);
+			b->published = dup_clean(date);
 		}
 		b->seen = 1;
 	}
@@ -276,18 +293,77 @@ static const char *sort_key(const char *title)
 	return title;
 }
 
+/*
+ * An author's last name, for sorting: the part before a comma
+ * ("Ellis, Bret Easton"), else the last word ("Bret Easton Ellis").
+ */
+static void last_name(const char *author, char *buf, size_t n)
+{
+	const char *comma = strchr(author, ',');
+	if (comma) {
+		snprintf(buf, n, "%.*s", (int)(comma - author), author);
+		return;
+	}
+	const char *sp = strrchr(author, ' ');
+	snprintf(buf, n, "%s", sp ? sp + 1 : author);
+}
+
+/* qsort has no room for an argument, so the order rides along here. */
+static int sort_how;
+
+static int by_title(const mr_book *a, const mr_book *b)
+{
+	return strcasecmp(sort_key(a->title ? a->title : ""),
+			  sort_key(b->title ? b->title : ""));
+}
+
 static int cmp_books(const void *pa, const void *pb)
 {
 	const mr_book *a = pa, *b = pb;
 	if (a->seen != b->seen)
 		return b->seen - a->seen;
-	if (a->last_read != b->last_read)
-		return a->last_read < b->last_read ? 1 : -1;
-	return strcasecmp(sort_key(a->title), sort_key(b->title));
+
+	switch (sort_how) {
+	case MR_SORT_TITLE:
+		break;
+	case MR_SORT_AUTHOR: {
+		char la[128], lb[128];
+		last_name(a->author ? a->author : "", la, sizeof la);
+		last_name(b->author ? b->author : "", lb, sizeof lb);
+		int c = strcasecmp(la, lb);
+		if (c)
+			return c;
+		c = strcasecmp(a->author ? a->author : "",
+			       b->author ? b->author : "");
+		if (c)
+			return c;
+		break;
+	}
+	case MR_SORT_ADDED:
+		if (a->mtime != b->mtime)
+			return a->mtime < b->mtime ? 1 : -1;
+		break;
+	case MR_SORT_PUBLISHED: {
+		const char *da = a->published ? a->published : "";
+		const char *db = b->published ? b->published : "";
+		if (!*da != !*db)	/* undated after dated */
+			return !*da - !*db;
+		int c = strcmp(db, da);	/* newest first */
+		if (c)
+			return c;
+		break;
+	}
+	default:	/* MR_SORT_RECENT */
+		if (a->last_read != b->last_read)
+			return a->last_read < b->last_read ? 1 : -1;
+		break;
+	}
+	return by_title(a, b);
 }
 
 void mr_library_sort(mr_library *lib)
 {
+	sort_how = lib->set.sort;
 	qsort(lib->items, lib->count, sizeof(mr_book), cmp_books);
 	lib->seen_count = 0;
 	while (lib->seen_count < lib->count &&
@@ -319,11 +395,12 @@ int mr_library_save(const mr_library *lib)
 	for (int i = 0; i < lib->count; i++) {
 		const mr_book *b = &lib->items[i];
 		fprintf(f, "%s\t%lld\t%lld\t%d\t%d\t%d\t%d\t%lld\t%s\t%s"
-			"\t%d\n",
+			"\t%d\t%s\n",
 			b->path, b->size, b->mtime, b->chapter, b->page,
 			b->chapter_pages, b->chapters, b->last_read,
 			b->title ? b->title : "",
-			b->author ? b->author : "", b->percent);
+			b->author ? b->author : "", b->percent,
+			b->published ? b->published : "");
 	}
 	if (fflush(f) != 0 || fsync(fileno(f)) != 0) {
 		perror(tmp);
@@ -366,7 +443,28 @@ void mr_library_free(mr_library *lib)
 		free(lib->items[i].path);
 		free(lib->items[i].title);
 		free(lib->items[i].author);
+		free(lib->items[i].published);
 	}
 	free(lib->items);
 	memset(lib, 0, sizeof *lib);
+}
+
+int mr_library_recent(const mr_library *lib, mr_book **out, int n)
+{
+	int k = 0;
+	for (int i = 0; i < lib->seen_count; i++) {
+		mr_book *b = &lib->items[i];
+		if (b->last_read <= 0)
+			continue;
+		/* insertion into a short list, newest first */
+		int j = k < n ? k++ : n;
+		while (j > 0 && out[j - 1]->last_read < b->last_read) {
+			if (j < n)
+				out[j] = out[j - 1];
+			j--;
+		}
+		if (j < n)
+			out[j] = b;
+	}
+	return k;
 }

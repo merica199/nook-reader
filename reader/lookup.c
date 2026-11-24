@@ -214,8 +214,7 @@ static fz_pixmap *render_entry(struct app *a, fz_buffer *buf)
 		dev = NULL;
 		int h = fz_is_empty_rect(ink) ? 0 : (int)(ink.y1 * scale);
 
-		pix = fz_new_pixmap(ctx, fz_device_gray(ctx), a->w,
-				    h + 2 * PAD, NULL, 0);
+		pix = mr_new_pixmap(ctx, a->w, h + 2 * PAD);
 		fz_clear_pixmap_with_value(ctx, pix, PANEL_BG);
 		fz_matrix ctm = fz_concat(fz_scale(scale, scale),
 					  fz_translate(PAD, PAD));
@@ -345,9 +344,10 @@ static void invert_box(struct app *a, fz_irect r)
 	fz_context *ctx = a->ctx;
 	r = fz_intersect_irect(r, fz_make_irect(0, 0, a->w, a->h));
 	int stride = fz_pixmap_stride(ctx, a->pix);
+	int n = fz_pixmap_components(ctx, a->pix);
 	unsigned char *s = fz_pixmap_samples(ctx, a->pix);
 	for (int y = r.y0; y < r.y1; y++)
-		for (int x = r.x0; x < r.x1; x++)
+		for (int x = r.x0 * n; x < r.x1 * n; x++)
 			s[y * stride + x] = 255 - s[y * stride + x];
 }
 

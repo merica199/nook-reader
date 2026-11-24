@@ -97,7 +97,8 @@ void ui_header(struct app *a, const char *title)
 
 /*
  * A box in the middle of the screen: a title, a sentence or two, and
- * buttons stacked full width. ui_dialog_hit says which was tapped
+ * buttons stacked full width, button "on" filled in (the likely
+ * choice, or the current one). ui_dialog_hit says which was tapped
  * (-1 for none), from the same layout.
  */
 #define DLG_W 480
@@ -111,7 +112,7 @@ static int dialog_top(struct app *a, const char *body, int n)
 }
 
 void ui_dialog(struct app *a, const char *title, const char *body,
-	       const char **buttons, int n)
+	       const char **buttons, int n, int on)
 {
 	fz_context *ctx = a->ctx;
 	int x = (a->w - DLG_W) / 2, top = dialog_top(a, body, n);
@@ -129,7 +130,7 @@ void ui_dialog(struct app *a, const char *title, const char *body,
 	int by = top + 90 + lines * 30;
 	for (int i = 0; i < n; i++, by += DLG_BTN_H + 14)
 		ui_button(a, x + 28, by, DLG_W - 56, DLG_BTN_H, buttons[i],
-			  i == 0);
+			  i == on);
 }
 
 int ui_dialog_hit(struct app *a, const char *body, int n, int x, int y)
@@ -270,7 +271,8 @@ void scroller_show(struct app *a, struct scroller *s, int top, int view_h)
 	int rows = view_h < total - s->scroll ? view_h : total - s->scroll;
 	for (int r = 0; r < rows; r++)
 		memcpy(dst + (top + r) * stride,
-		       src + (s->scroll + r) * lstride, a->w);
+		       src + (s->scroll + r) * lstride,
+		       a->w * fz_pixmap_components(ctx, a->pix));
 
 	/* Scrollbar: where this window sits in the whole list. */
 	if (total > view_h) {

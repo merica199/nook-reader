@@ -1,6 +1,6 @@
 /*
  * Backend: no screen and no person. Events come from stdin, one per
- * line, and every frame the reader shows is saved as frame-NNN.pgm.
+ * line, and every frame the reader shows is saved as frame-NNN.ppm.
  * It lets the reader be tested without anyone clicking, on the Mac
  * and under QEMU.
  *
@@ -37,10 +37,10 @@ static int script_init(int *width, int *height)
 	return 0;
 }
 
-static void script_present(const unsigned char *gray, int stride)
+static void script_present(const unsigned char *rgb, int stride)
 {
 	char name[32];
-	snprintf(name, sizeof name, "frame-%03d.pgm", frame++);
+	snprintf(name, sizeof name, "frame-%03d.ppm", frame++);
 
 	FILE *f = fopen(name, "wb");
 	if (!f) {
@@ -48,13 +48,14 @@ static void script_present(const unsigned char *gray, int stride)
 		return;
 	}
 	/*
-	 * PGM, the simplest image format there is: a short text header,
-	 * then the raw gray bytes row by row. Rows are written one at a
-	 * time because the stride may be wider than the visible width.
+	 * PPM, the simplest color image format there is: a short text
+	 * header, then the raw RGB bytes row by row. Rows are written one
+	 * at a time because the stride may be wider than the visible
+	 * width.
 	 */
-	fprintf(f, "P5\n%d %d\n255\n", MR_NOOK_W, MR_NOOK_H);
+	fprintf(f, "P6\n%d %d\n255\n", MR_NOOK_W, MR_NOOK_H);
 	for (int y = 0; y < MR_NOOK_H; y++)
-		fwrite(gray + y * stride, 1, MR_NOOK_W, f);
+		fwrite(rgb + y * stride, 1, MR_NOOK_W * 3, f);
 	fclose(f);
 	printf("wrote %s\n", name);
 }

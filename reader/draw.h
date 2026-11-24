@@ -21,6 +21,9 @@ void mr_draw_init(fz_context *ctx);
 void mr_draw_done(fz_context *ctx);
 
 /* A filled rectangle, x/y its top left corner. */
+/* A new picture to draw in: RGB, no alpha. */
+fz_pixmap *mr_new_pixmap(fz_context *ctx, int w, int h);
+
 void mr_fill(fz_context *ctx, fz_pixmap *pix, int x, int y, int w, int h,
 	     int gray);
 

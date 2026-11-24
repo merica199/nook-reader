@@ -56,11 +56,11 @@ typedef struct mr_platform {
 	int (*init)(int *width, int *height);
 
 	/*
-	 * Show one full screen of 8-bit grayscale (0 black, 255 white),
-	 * stride bytes per row. The backend converts it to whatever its
-	 * screen really takes, so the reader never cares.
+	 * Show one full screen: RGB, 3 bytes a pixel (0 dark, 255
+	 * bright), stride bytes per row. The backend converts it to
+	 * whatever its screen really takes, so the reader never cares.
 	 */
-	void (*present)(const unsigned char *gray, int stride);
+	void (*present)(const unsigned char *rgb, int stride);
 
 	/*
 	 * Wait for the next event the reader cares about, at most

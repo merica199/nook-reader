@@ -37,11 +37,20 @@ static void undim(struct app *a)
 	a->dimmed = 0;
 }
 
+/* The lock screen, or the passcode keypad that follows it. */
+static int locked(struct app *a)
+{
+	return a->mode == MODE_LOCK ||
+	       (a->mode == MODE_PASS && a->pass_purpose == PASS_UNLOCK);
+}
+
 void sys_sleep(struct app *a)
 {
 	if (a->asleep)
 		return;
-	if (a->mode != MODE_LOCK) {
+	if (locked(a)) {
+		a->mode = MODE_LOCK;	/* unlock_to stays as it was */
+	} else {
 		/* from the power menu, go back to what it covered */
 		a->unlock_to = a->mode == MODE_POWER ? a->menu_over
 						     : a->mode;
@@ -149,7 +158,7 @@ int sys_event(struct app *a, const mr_event *ev)
 		undim(a);
 		return 2;
 	}
-	if (a->mode == MODE_LOCK)
+	if (locked(a))
 		a->lock_until = now + LOCK_SHOW_MS;
 	return 0;
 }
@@ -180,8 +189,8 @@ static int usb_tick(struct app *a)
 		books_back(a);
 		return 1;
 	}
-	if (st == MR_USB_COMPUTER && was == MR_USB_NONE &&
-	    a->mode != MODE_LOCK && a->mode != MODE_POWER) {
+	if (st == MR_USB_COMPUTER && was == MR_USB_NONE && !locked(a) &&
+	    a->mode != MODE_POWER) {
 		a->menu_over = a->mode;
 		a->mode = MODE_USB;
 		return 1;
@@ -208,7 +217,7 @@ int sys_tick(struct app *a)
 	long long dim = setting_dim_ms(a), slp = setting_sleep_ms(a);
 	int busy = a->down || a->power_down || a->usb != MR_USB_NONE;
 
-	if (a->mode == MODE_LOCK) {
+	if (locked(a)) {
 		if (now >= a->lock_until && !busy) {
 			sys_sleep(a);
 			return 0;
@@ -254,7 +263,7 @@ int sys_wait_ms(struct app *a)
 			   a->usb != MR_USB_NONE;
 		long long dim = setting_dim_ms(a);
 		long long slp = setting_sleep_ms(a);
-		if (a->mode == MODE_LOCK) {
+		if (locked(a)) {
 			if (!busy)
 				SOON(a->lock_until);
 		} else if (!busy) {
@@ -306,12 +315,11 @@ static int slide_max(struct app *a)
 	return track_w(a) - KNOB - 8;
 }
 
-/* The book being read, if any: the first, as the library is sorted. */
+/* The book being read, if any: the one read most recently. */
 static mr_book *reading(struct app *a)
 {
-	if (a->lib.seen_count > 0 && a->lib.items[0].last_read > 0)
-		return &a->lib.items[0];
-	return NULL;
+	mr_book *b;
+	return mr_library_recent(&a->lib, &b, 1) ? b : NULL;
 }
 
 void draw_lock(struct app *a)
@@ -404,10 +412,22 @@ void draw_lock_cover(struct app *a)
 			      COVER_H);
 }
 
+/* Past the slider: the passcode if there is one, else straight in. */
 static void unlock(struct app *a)
 {
+	a->slide = a->sliding = 0;
+	if (a->lib.set.pass)
+		pass_unlock(a);
+	else
+		unlock_done(a);
+}
+
+/* Back to where you were. */
+void unlock_done(struct app *a)
+{
 	enum mode to = a->unlock_to;
-	if (to == MODE_LOCK || to == MODE_POWER || to == MODE_USB)
+	if (to == MODE_LOCK || to == MODE_POWER || to == MODE_USB ||
+	    to == MODE_PASS)
 		to = MODE_HOME;
 	if (to == MODE_BOOK && !a->doc)
 		to = MODE_HOME;
@@ -467,7 +487,7 @@ void draw_power(struct app *a)
 {
 	if (a->menu_over != MODE_POWER)
 		draw_screen(a, a->menu_over);
-	ui_dialog(a, "Power", power_body(), power_buttons, 3);
+	ui_dialog(a, "Power", power_body(), power_buttons, 3, 0);
 }
 
 int on_power(struct app *a, const struct action *act)
@@ -647,7 +667,7 @@ void draw_usb(struct app *a)
 		if (a->menu_over != MODE_USB)
 			draw_screen(a, a->menu_over);
 		ui_dialog(a, "Connected to a computer", usb_body,
-			  usb_buttons, 2);
+			  usb_buttons, 2, 0);
 		return;
 	}
 	fz_clear_pixmap_with_value(ctx, a->pix, MR_WHITE);

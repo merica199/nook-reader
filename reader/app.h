@@ -37,7 +37,12 @@ enum mode {
 	MODE_POWER,	/* "power off / restart / cancel", over a screen */
 	MODE_CLOCK,	/* setting the date and time */
 	MODE_USB,	/* plugged into a computer: sharing the books */
+	MODE_PASS,	/* the passcode keypad */
 };
+
+/* What the passcode keypad is for (passcode.c). */
+enum { PASS_UNLOCK, PASS_NEW, PASS_CONFIRM, PASS_CHECK, PASS_CHANGE,
+       PASS_OFF };
 
 /*
  * What the finger (or a button) meant, worked out once in reader.c
@@ -129,6 +134,7 @@ struct app {
 	fz_irect dict_word;	/* the word on the page, highlighted */
 
 	int settings_page;	/* 0 Reading, 1 Device */
+	int sort_open;		/* the Library's sort box is showing */
 
 	/*
 	 * Awake, dimmed, asleep (system.c). last_input is the last time
@@ -149,6 +155,13 @@ struct app {
 	int usb;		/* last MR_USB_* seen */
 	int usb_sharing;	/* the books are on the computer */
 	struct tm clock_edit;	/* the date and time being set */
+
+	/* The passcode keypad: what for, and what's typed so far. */
+	int pass_purpose, pass_after;
+	char pass_entry[8];
+	int pass_len;
+	int pass_first;		/* the new code's hash, typed once */
+	char pass_msg[64];
 
 	/* Only the script backend: wall time follows its clock. */
 	time_t wall0;
@@ -177,7 +190,7 @@ void ui_status(struct app *a, int right, int baseline, int gray);
 void ui_header(struct app *a, const char *title);
 void ui_header_to(struct app *a, const char *title, int right);
 void ui_dialog(struct app *a, const char *title, const char *body,
-	       const char **buttons, int n);
+	       const char **buttons, int n, int on);
 int ui_dialog_hit(struct app *a, const char *body, int n, int x, int y);
 void draw_screen(struct app *a, enum mode m);
 void ui_tabs(struct app *a);
@@ -222,6 +235,13 @@ void draw_clock(struct app *a);
 int on_clock(struct app *a, const struct action *act);
 void draw_usb(struct app *a);
 int on_usb(struct app *a, const struct action *act);
+void unlock_done(struct app *a);
+
+/* passcode.c */
+void pass_unlock(struct app *a);
+void pass_settings(struct app *a, int what);
+void draw_pass(struct app *a);
+int on_pass(struct app *a, const struct action *act);
 
 /* home.c */
 void draw_home(struct app *a);

@@ -69,19 +69,16 @@ static void redraw(void)
 	SDL_RenderPresent(renderer);
 }
 
-static void sdl_present(const unsigned char *gray, int stride)
+static void sdl_present(const unsigned char *rgb, int stride)
 {
-	/*
-	 * Gray to ARGB: copy the one gray byte into red, green and blue,
-	 * with alpha fully opaque. The framebuffer backend will do the
-	 * same job for whatever format the Nook's screen turns out to be.
-	 */
+	/* RGB bytes to ARGB words, alpha fully opaque */
 	for (int y = 0; y < MR_NOOK_H; y++) {
-		const unsigned char *row = gray + y * stride;
+		const unsigned char *row = rgb + y * stride;
 		Uint32 *out = argb + y * MR_NOOK_W;
 		for (int x = 0; x < MR_NOOK_W; x++) {
-			Uint32 v = row[x];
-			out[x] = 0xFF000000u | v << 16 | v << 8 | v;
+			const unsigned char *p = row + x * 3;
+			out[x] = 0xFF000000u | (Uint32)p[0] << 16 |
+				 (Uint32)p[1] << 8 | p[2];
 		}
 	}
 	SDL_UpdateTexture(texture, NULL, argb, MR_NOOK_W * sizeof(Uint32));

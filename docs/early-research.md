@@ -1,4 +1,4 @@
-# Nook Color reading OS: feasibility (2026-11-22)
+# Early research: running Linux on the Nook Color (2026-11-22)
 
 Research done 2026-11-22, before MyNook was built (it chose the CyanogenMod kernel path; see how-it-works.md). The key claims were spot-checked against the source files listed at the end. Unverified items are marked.
 

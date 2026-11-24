@@ -24,4 +24,11 @@ double *mr_chapter_starts(fz_context *ctx, const char *path, int chapters);
  */
 fz_image *mr_epub_cover(fz_context *ctx, const char *path);
 
+/*
+ * When the book was published (dc:date), as "YYYY-MM-DD" or as much
+ * of it as the book gives, into buf; empty if it doesn't say.
+ */
+void mr_epub_date(fz_context *ctx, const char *path, char *buf,
+		  size_t n);
+
 #endif

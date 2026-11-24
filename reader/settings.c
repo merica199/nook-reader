@@ -94,11 +94,12 @@ enum kind {
 	STEP,	/* "-  value  +" */
 	SEG,	/* one of a few choices, side by side */
 	BUTTON,	/* opens another screen */
+	PASS,	/* "Set", or "Change" and "Turn off" */
 };
 
 enum row_id {
 	R_SIZE, R_FONT, R_SPACING, R_MARGIN,
-	R_DARK, R_LIGHT, R_DIM, R_SLEEP, R_CLOCK24, R_SETTIME,
+	R_DARK, R_LIGHT, R_DIM, R_SLEEP, R_CLOCK24, R_SETTIME, R_PASS,
 };
 
 struct row {
@@ -122,6 +123,7 @@ static const struct row device_rows[] = {
 	{ R_SLEEP, SEG, "Sleep after", { "Off", "5 min", "10", "15", "30" } },
 	{ R_CLOCK24, SEG, "Clock", { "2:05 PM", "14:05" } },
 	{ R_SETTIME, BUTTON, "Date & time", { "Set" } },
+	{ R_PASS, PASS, "Passcode", { 0 } },
 };
 
 static int has_light(struct app *a)
@@ -204,6 +206,10 @@ static void btn_box(struct app *a, const struct row *r, int k, int i,
 	} else if (r->kind == BUTTON) {
 		*w = 140;
 		*x = CTRL_X + ctrl_w - 140;
+	} else if (r->kind == PASS) {
+		/* two buttons at the right end, or one if no passcode */
+		*w = 140;
+		*x = CTRL_X + ctrl_w - (i == 0 ? 2 * 140 + 8 : 140);
 	} else {
 		int n = seg_count(r), gap = 8;
 		*w = (ctrl_w - (n - 1) * gap) / n;
@@ -324,6 +330,20 @@ void draw_settings(struct app *a)
 				MR_BOLD, 24, MR_BLACK, 0, MR_CENTER);
 			btn_box(a, r, k, 1, &bx, &by, &bw);
 			ui_button(a, bx, by, bw, BTN_H, "+", 0);
+		} else if (r->kind == PASS) {
+			int on = a->lib.set.pass != 0;
+			mr_text(ctx, a->pix, CTRL_X, ROW_TOP + k * ROW_H +
+				ROW_H / 2 + 8, on ? "On" : "Off", MR_REGULAR,
+				20, MR_GRAY, 60, MR_LEFT);
+			if (on) {
+				btn_box(a, r, k, 0, &bx, &by, &bw);
+				ui_button(a, bx, by, bw, BTN_H, "Change", 0);
+				btn_box(a, r, k, 1, &bx, &by, &bw);
+				ui_button(a, bx, by, bw, BTN_H, "Turn off", 0);
+			} else {
+				btn_box(a, r, k, 1, &bx, &by, &bw);
+				ui_button(a, bx, by, bw, BTN_H, "Set", 0);
+			}
 		} else if (r->kind == BUTTON) {
 			/* the date and time now, then "Set" */
 			char now[64];
@@ -385,15 +405,25 @@ int on_settings(struct app *a, const struct action *act)
 	const struct row *r = rows[k];
 
 	int count = r->kind == SEG ? seg_count(r) :
-		    r->kind == STEP ? 2 : 1;
+		    r->kind == STEP || r->kind == PASS ? 2 : 1;
 	for (int i = 0; i < count; i++) {
 		int bx, by, bw;
+		/* no passcode: only "Set" (button 1) is there to tap */
+		if (r->kind == PASS && i == 0 && !a->lib.set.pass)
+			continue;
 		btn_box(a, r, k, i, &bx, &by, &bw);
 		if (x < bx || x >= bx + bw || y < by || y >= by + BTN_H)
 			continue;
 
 		int *v = row_value(a, r->id);
-		if (r->id == R_SETTIME) {
+		if (r->id == R_PASS) {
+			if (!a->lib.set.pass)
+				pass_settings(a, PASS_NEW);
+			else
+				pass_settings(a, i == 0 ? PASS_CHANGE
+						        : PASS_OFF);
+			return 1;
+		} else if (r->id == R_SETTIME) {
 			open_clock(a);
 			return 1;
 		} else if (r->id == R_LIGHT) {

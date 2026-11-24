@@ -58,10 +58,11 @@ static void apply_dark(struct app *a)
 	}
 
 	int stride = fz_pixmap_stride(a->ctx, a->pix);
+	int bytes = a->w * fz_pixmap_components(a->ctx, a->pix);
 	unsigned char *s = fz_pixmap_samples(a->ctx, a->pix);
 	for (int y = 0; y < a->h; y++) {
 		unsigned char *row = s + y * stride;
-		for (int x = 0; x < a->w; x++)
+		for (int x = 0; x < bytes; x++)
 			row[x] = table[row[x]];
 	}
 }
@@ -108,6 +109,9 @@ void draw_screen(struct app *a, enum mode m)
 		break;
 	case MODE_USB:
 		draw_usb(a);
+		break;
+	case MODE_PASS:
+		draw_pass(a);
 		break;
 	}
 }
@@ -246,6 +250,7 @@ static int dispatch(struct app *a, const struct action *act)
 	 * or while the books are away on a computer.
 	 */
 	if (act->type == ACT_HOME && a->mode != MODE_LOCK &&
+	    !(a->mode == MODE_PASS && a->pass_purpose == PASS_UNLOCK) &&
 	    !(a->mode == MODE_USB && a->usb_sharing)) {
 		if (a->mode == MODE_HOME)
 			return 0;
@@ -275,6 +280,8 @@ static int dispatch(struct app *a, const struct action *act)
 		return on_clock(a, act);
 	case MODE_USB:
 		return on_usb(a, act);
+	case MODE_PASS:
+		return on_pass(a, act);
 	}
 	return 0;
 }
@@ -371,8 +378,7 @@ int main(int argc, char **argv)
 	fz_try(a.ctx) {
 		fz_register_document_handlers(a.ctx);
 		mr_draw_init(a.ctx);
-		a.pix = fz_new_pixmap(a.ctx, fz_device_gray(a.ctx),
-				      a.w, a.h, NULL, 0);
+		a.pix = mr_new_pixmap(a.ctx, a.w, a.h);
 	}
 	fz_catch(a.ctx) {
 		fprintf(stderr, "error: %s\n", fz_caught_message(a.ctx));
@@ -399,8 +405,9 @@ int main(int argc, char **argv)
 
 		/* Turn on into the book you were reading. */
 		ui_go(&a, MODE_HOME);
-		if (a.lib.seen_count > 0 && a.lib.items[0].last_read > 0)
-			open_book(&a, &a.lib.items[0]);
+		mr_book *last;
+		if (mr_library_recent(&a.lib, &last, 1))
+			open_book(&a, last);
 
 		/*
 		 * The loop: draw if something changed (never while

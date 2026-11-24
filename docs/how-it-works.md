@@ -10,7 +10,7 @@ From power button to pixels, bottom to top.
 | RAM | 512 MB (459 MB usable) | |
 | Screen | 7", 1024x600 LCD, mounted landscape | `/dev/fb0`, RGB565 |
 | Touch | Cypress TrueTouch (`cyttsp-i2c`), multitouch | `/dev/input/event2` |
-| Buttons | n and power (`gpio-keys`), volume up and down (`twl4030-keypad`) | `/dev/input/event0`, `event1` |
+| Buttons | n and power (`gpio-keys`), volume up and down (`twl4030-keypad`, unused for now) | `/dev/input/event0`, `event1` |
 | Backlight | PWM LED driver | `/sys/class/leds/lcd-backlight/` (0 to 255) |
 | Battery | MAX17042 fuel gauge | `/sys/class/power_supply/max17042-0/` |
 | Clock | TWL4030 real-time clock, kept running by the battery | `/dev/rtc0`, holds UTC |
@@ -93,15 +93,15 @@ typedef struct mr_platform {
 } mr_platform;
 ```
 
-The reader draws every frame into one 600x1024 8-bit grayscale buffer, hands it to `present`, and asks `next_event` what happened next. Three backends fill in the struct:
+The reader draws every frame into one 600x1024 RGB buffer (3 bytes a pixel), hands it to `present`, and asks `next_event` what happened next. The interface is drawn in grays, which in RGB are just the same byte three times; book pages, pictures and covers come out in their own colors. Three backends fill in the struct:
 
 - **`platform_fb.c`, the Nook.** "fb" is the **framebuffer**: a block of memory the display controller scans out to the panel, exposed by the kernel as `/dev/fb0`. The backend `mmap`s it, so writing a pixel is a store to memory, like poking a memory-mapped register in C. Two conversions happen on the way out:
-  - **Pixel format.** The Nook's framebuffer is RGB565 (5 bits red, 6 green, 5 blue, in one 16-bit word), so each gray byte goes through a 256-entry lookup table built from the framebuffer's own field offsets.
+  - **Pixel format.** The Nook's framebuffer is RGB565 (5 bits red, 6 green, 5 blue, in one 16-bit word). Each of red, green and blue goes through its own 256-entry lookup table, built from the framebuffer's field offsets, and the three results are OR'd into one pixel.
   - **Rotation.** The panel is mounted landscape, so each frame turns a quarter turn on the way out; touches turn back on the way in.
 
   Input is **evdev**: each `/dev/input/eventN` is a stream of 16-byte `struct input_event` records (timestamp, type, code, value). The touchscreen speaks multitouch protocol B. Finger 0's slot, position and tracking ID arrive as separate records, and `SYN_REPORT` closes each snapshot. Only then is the position complete enough to report. The struct is spelled out by hand, because musl's `time_t` is 64-bit and the 32-bit kernel writes 32-bit timestamps. The rest is sysfs files (backlight, battery, power state, USB) and `/dev/rtc0`.
 - **`platform_sdl.c`, a Mac window** at the Nook's size, through SDL2.
-- **`platform_script.c`, the test harness.** Commands come in on stdin (`t 300 250` is a tap, `o` the power button, `.` time passing) and every frame goes out as a PGM image. It keeps its own clock, so timers like "sleep after 10 minutes" can be tested without waiting.
+- **`platform_script.c`, the test harness.** Commands come in on stdin (`t 300 250` is a tap, `o` the power button, `.` time passing) and every frame goes out as a PPM image. It keeps its own clock, so timers like "sleep after 10 minutes" can be tested without waiting.
 
 The same reader binary works under Android too (`make run`): the framebuffer, evdev and sysfs are the kernel's, not Android's. Android only has to be paused, so it lets go of the screen and the touchscreen.
 
@@ -116,7 +116,7 @@ next_event(timeout)  ->  system.c         ->  gestures     ->  the screen showin
 
 `next_event` takes a timeout, the soonest of the reader's timers. Those are: the hold on a word, the power button becoming a hold, dimming, sleep, the lock screen going dark, the minute turning on the clock, and the next look at the USB port. The touchscreen jitters, so a finger's hold is measured from the moment it touched, not from its last tiny movement.
 
-Each screen is a pair of functions, `draw_X` and `on_X`. After every change the whole frame is drawn again from scratch. Dark mode is a 256-entry table applied to the finished frame: paper (255) becomes gray 20 and ink (0) becomes gray 225. Book covers are drawn after that remap, so they keep their own colors.
+Each screen is a pair of functions, `draw_X` and `on_X`. After every change the whole frame is drawn again from scratch. Dark mode is a 256-entry table applied to every byte of the finished frame: paper (255) becomes 20 and ink (0) becomes 225. Book covers are drawn after that remap, so they keep their own colors; pictures inside a book's pages don't yet, and come out as negatives in dark mode.
 
 ### Books
 
@@ -125,6 +125,13 @@ MuPDF opens EPUBs, lays them out for the page size and font, and draws pages. La
 Progress is weighted by the size of each chapter's file inside the EPUB, read straight from its zip (`epub.c`). So 50% means halfway through the text.
 
 The state file (`/data/mynook/state`) is plain text, written on every page turn the safe way: to a temporary file, `fsync`, then `rename`. A dead battery can't leave half a file.
+
+- **Settings:** lines like `#dark<TAB>1`.
+- **Books:** one line per book, tab-separated: path, size and modification time (to notice a changed file), the saved place, when it was last read, title, author, percent, and the published date from the EPUB's `dc:date`. Calibre writes year 0101 for "unknown", which counts as no date.
+
+The Library sorts by any of five orders. Home, the lock screen and start-up don't depend on that order: they ask for the most recently read books separately (`mr_library_recent`).
+
+**The passcode** is kept as a 32-bit FNV-1a hash of the digits, never the digits themselves. That keeps it out of plain sight in the state file. It isn't security against someone with adb: they can delete the line.
 
 ### The dictionary
 

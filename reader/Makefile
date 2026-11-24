@@ -7,7 +7,8 @@
 #               README).
 
 SRCS = reader.c ui.c home.c library.c settings.c book.c books.c \
-       draw.c epub.c dict.c lookup.c system.c platform_script.c
+       draw.c epub.c dict.c lookup.c system.c passcode.c \
+       platform_script.c
 HDRS = app.h platform.h books.h draw.h epub.h dict.h
 
 # ---- Mac ----
@@ -55,6 +56,6 @@ reader-nook: $(SRCS) platform_fb.c $(HDRS)
 		-lstdc++ -lm
 
 clean:
-	rm -f reader reader-nook frame-*.pgm frame-*.png
+	rm -f reader reader-nook frame-*.ppm frame-*.png
 
 .PHONY: nook mupdf-nook clean

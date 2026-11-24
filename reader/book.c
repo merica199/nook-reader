@@ -420,8 +420,7 @@ static void build_contents(struct app *a)
 
 	fz_drop_pixmap(ctx, a->contents.pix);
 	a->contents.pix = NULL;
-	a->contents.pix = fz_new_pixmap(ctx, fz_device_gray(ctx), a->w,
-					n * TOC_ROW_H + 40, NULL, 0);
+	a->contents.pix = mr_new_pixmap(ctx, a->w, n * TOC_ROW_H + 40);
 	fz_pixmap *pix = a->contents.pix;
 	fz_clear_pixmap_with_value(ctx, pix, MR_WHITE);
 

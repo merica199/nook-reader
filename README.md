@@ -6,15 +6,15 @@ The reader is about 6,000 lines of C on [MuPDF](https://mupdf.com/). MyNook is B
 
 ## What it does
 
-- **Home:** the book you're reading with its cover and a progress bar; tap to continue. Below it, the books read before it.
-- **Library:** every book in one scrolling list, most recently read first, then by title.
-- **Reading:** tap the right two-thirds of the page (or volume down) for the next page, the left third (or volume up) to go back, or swipe. Tap the top or bottom edge for the reading menu: progress, Home, Contents, Settings.
+- **Home:** the book you're reading, one tap to carry on, and a grid of the eight books read before it.
+- **Library:** every book in one scrolling list, sorted by last read, title, author, date added or date published.
+- **Reading:** tap the right two-thirds of the page for the next page, the left third to go back, or swipe. Tap the top or bottom edge for the reading menu: progress, Home, Contents, Settings. Pages, covers and pictures are in color on the Nook Color's screen.
 - **Dictionary:** press and hold a word for half a second. Its entry slides up over the other half of the screen: the word, how to say it ("ig-ZAM-puhl"), and numbered meanings. Inflected words show their base word too ("went", then "go"). It covers 1,042,340 English words from Wiktionary and works offline.
 - **Contents:** the book's table of contents, with the current chapter marked.
 - **Settings:**
   - Reading: text size (7 to 28 pt), font (the book's own, serif or sans), line spacing and margins, with a live preview.
   - Device: dark mode (on by default), brightness, dim after, sleep after, 12 or 24 hour clock, and the date and time.
-- **Lock screen:** a big clock, the date, the battery and the book you're reading; slide the knob across to unlock. The power button sleeps and wakes; hold it for Power off or Restart.
+- **Lock screen:** a big clock, the date, the battery and the book you're reading; slide the knob across to unlock, with an optional 4 to 6 digit passcode. The power button sleeps and wakes; hold it for Power off or Restart.
 - **USB drive:** plug into a computer and choose "Share books". The books appear as a drive; eject it when you're done and reading picks up again.
 - **Progress** is weighted by chapter size, so 50% means halfway through the text, not halfway through the chapters. Your place is saved on every page turn.
 
@@ -28,7 +28,7 @@ make reader
 reader/reader ~/path/to/epub/folder
 ```
 
-Click to tap, drag to scroll, and use the arrow keys to turn pages. Esc is the n button and `l` is the power button (hold it for the power menu).
+Click to tap, hold the mouse button still for half a second to look up a word, drag to scroll, and use the arrow keys to turn pages. Esc is the n button and `l` is the power button (hold it for the power menu).
 
 ## Putting it on a Nook
 
@@ -61,9 +61,12 @@ make install     # onto the Nook, over adb
 
 `make run` tries a new reader build on the Nook without restarting. It pauses Android, runs the reader, and brings Android back when you quit.
 
-## How it works
+## Documentation
 
-[docs/how-it-works.md](docs/how-it-works.md) walks the whole stack, from the boot ROM to a pixel on the screen. It covers the bootloader's alternate slot, the kernel and its startup archive, init, the platform layer (how one program drives a Mac window and the Nook's framebuffer), MuPDF, the dictionary's file format, sleep, and USB.
+- [docs/user-guide.md](docs/user-guide.md): using it, from starting MyNook to adding books and recovering a forgotten passcode.
+- [docs/how-it-works.md](docs/how-it-works.md) walks the whole stack, from the boot ROM to a pixel on the screen. It covers the bootloader's alternate slot, the kernel and its startup archive, init, the platform layer (how one program drives a Mac window and the Nook's framebuffer), MuPDF, the dictionary's file format, sleep, and USB.
+- [docs/notes.md](docs/notes.md): what's verified on the device and what isn't yet, and lessons learned.
+- [docs/early-research.md](docs/early-research.md): the research done before MyNook was built.
 
 ## Layout
 
@@ -72,7 +75,7 @@ make install     # onto the Nook, over adb
 | `reader/` | the reader (C). `platform_fb.c` is the Nook, `platform_sdl.c` the Mac window, `platform_script.c` the test harness |
 | `os/` | MyNook: the Buildroot config, the Docker build box, and `overlay/`, MyNook's own files (`/init`, `inittab`, startup, session) |
 | `scripts/` | fetching sources, building the toolchain and MyNook, installing, running under Android; `dict/` builds the dictionary |
-| `docs/` | how it works, development notes, and the original research into running Linux on the Nook |
+| `docs/` | the user guide, how it works, development notes, and the early research |
 
 ## Status
 

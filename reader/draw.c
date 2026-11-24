@@ -24,10 +24,21 @@ static fz_font *pick(mr_weight wt)
 }
 
 /*
+ * Every picture the reader draws in: RGB, 3 bytes a pixel, no alpha.
+ * The interface is gray, which in RGB is just the same byte three
+ * times; book pages and covers come out in their own colors.
+ */
+fz_pixmap *mr_new_pixmap(fz_context *ctx, int w, int h)
+{
+	return fz_new_pixmap(ctx, fz_device_rgb(ctx), w, h, NULL, 0);
+}
+
+/*
  * MuPDF has fz_clear_pixmap_rect_with_value for this, but in 1.27.2
- * it leaves a gray pixmap untouched (tested 2026-11-23). A gray
- * pixmap is just one byte per pixel, row after row, so do it by hand:
- * clip the rectangle to the pixmap, then memset each row.
+ * it leaves a gray pixmap untouched (tested 2026-11-23), so do it by
+ * hand: clip the rectangle to the pixmap, then memset each row. A
+ * gray level is the same value in every channel, so one memset
+ * covers all of them.
  */
 void mr_fill(fz_context *ctx, fz_pixmap *pix, int x, int y, int w, int h,
 	     int gray)
@@ -35,6 +46,7 @@ void mr_fill(fz_context *ctx, fz_pixmap *pix, int x, int y, int w, int h,
 	int pw = fz_pixmap_width(ctx, pix);
 	int ph = fz_pixmap_height(ctx, pix);
 	int stride = fz_pixmap_stride(ctx, pix);
+	int n = fz_pixmap_components(ctx, pix);
 	unsigned char *s = fz_pixmap_samples(ctx, pix);
 
 	int x0 = x < 0 ? 0 : x;
@@ -42,7 +54,7 @@ void mr_fill(fz_context *ctx, fz_pixmap *pix, int x, int y, int w, int h,
 	int x1 = x + w > pw ? pw : x + w;
 	int y1 = y + h > ph ? ph : y + h;
 	for (int row = y0; row < y1 && x0 < x1; row++)
-		memset(s + row * stride + x0, gray, x1 - x0);
+		memset(s + row * stride + x0 * n, gray, (x1 - x0) * n);
 }
 
 /*

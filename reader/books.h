@@ -42,7 +42,23 @@ typedef struct {
 
 	long long last_read;	/* Unix time; 0 = never */
 	int seen;		/* found on disk by this run's scan */
+
+	/*
+	 * When it was published, "YYYY-MM-DD" or less, from the EPUB;
+	 * "" if it doesn't say; NULL if not looked at yet.
+	 */
+	char *published;
 } mr_book;
+
+/* How the library list is sorted (the Library's Sort button). */
+enum {
+	MR_SORT_RECENT,		/* last read first, then by title */
+	MR_SORT_TITLE,		/* A to Z, "The" and "A" ignored */
+	MR_SORT_AUTHOR,		/* by last name */
+	MR_SORT_ADDED,		/* newest file first */
+	MR_SORT_PUBLISHED,	/* newest first; undated last */
+	MR_SORT_COUNT
+};
 
 /*
  * Reader settings. Each is an index into a list of choices that lives
@@ -58,6 +74,8 @@ typedef struct {
 	int dim;	/* dim after: choice index, default 2 (2 min) */
 	int sleep;	/* sleep after: choice index, default 2 (10 min) */
 	int clock24;	/* 0 "2:05 PM", 1 "14:05" */
+	int sort;	/* MR_SORT_* */
+	int pass;	/* the passcode's hash; 0 = no passcode */
 } mr_settings;
 
 typedef struct {
@@ -84,8 +102,14 @@ void mr_library_load(mr_library *lib, const char *state_path);
  */
 void mr_library_scan(fz_context *ctx, mr_library *lib, const char *dir);
 
-/* On disk first; then most recently read; then by title. */
+/* On disk first; then in the order lib->set.sort picks. */
 void mr_library_sort(mr_library *lib);
+
+/*
+ * Up to n books on disk that have been read, most recent first, into
+ * out, whatever order the library list is in. Returns how many.
+ */
+int mr_library_recent(const mr_library *lib, mr_book **out, int n);
 
 /* Write the state file safely (see books.c). 0 on success. */
 int mr_library_save(const mr_library *lib);

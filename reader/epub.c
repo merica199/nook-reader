@@ -264,3 +264,50 @@ fz_image *mr_epub_cover(fz_context *ctx, const char *path)
 	}
 	return img;
 }
+
+/*
+ * dc:date from the book's metadata, cut to "YYYY-MM-DD" (or as much
+ * of it as there is) in buf. Empty if there's none or it's a
+ * placeholder: Calibre writes year 0101 when it doesn't know.
+ */
+static void copy_date(const char *text, char *buf, size_t n)
+{
+	buf[0] = '\0';
+	if (!text)
+		return;
+	while (*text == ' ' || *text == '\n' || *text == '\t')
+		text++;
+	if (atoi(text) < 1000)
+		return;
+	size_t len = 0;
+	while (len < 10 && len + 1 < n &&
+	       ((text[len] >= '0' && text[len] <= '9') || text[len] == '-'))
+		len++;
+	memcpy(buf, text, len);
+	buf[len] = '\0';
+}
+
+void mr_epub_date(fz_context *ctx, const char *path, char *buf, size_t n)
+{
+	fz_archive *arch = NULL;
+	fz_xml *opf = NULL;
+	fz_var(arch);
+	fz_var(opf);
+
+	buf[0] = '\0';
+	fz_try(ctx) {
+		char opf_dir[1024];
+		arch = fz_open_archive(ctx, path);
+		opf = load_opf(ctx, arch, opf_dir, sizeof opf_dir);
+		/* MuPDF drops namespace prefixes: dc:date is "date" */
+		fz_xml *meta = fz_xml_find_dfs(opf, "metadata", NULL, NULL);
+		fz_xml *date = meta ? fz_xml_find_down(meta, "date") : NULL;
+		copy_date(fz_xml_text(fz_xml_down(date)), buf, n);
+	}
+	fz_always(ctx) {
+		fz_drop_xml(ctx, opf);
+		fz_drop_archive(ctx, arch);
+	}
+	fz_catch(ctx)
+		buf[0] = '\0';
+}

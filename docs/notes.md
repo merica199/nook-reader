@@ -37,7 +37,8 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
 - **USB sharing** under MyNook: the drive appearing on the Mac, eject detection, remounting.
 - **`adbd`** from CyanogenMod's `/system` running outside Android.
 - **Power off** (SIGUSR2 to BusyBox init), and restart landing in CyanogenMod.
-- **Speed** on the Nook: opening books, the dictionary lookup, drawing covers.
+- **Speed** on the Nook: opening books, the dictionary lookup, drawing covers, and color frames (three table lookups a pixel instead of one).
+- **Color** on the Nook's own screen (RGB565 packing of real colors; only gray had been shown on it).
 
 ## Lessons
 
@@ -58,8 +59,11 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
   - every screen, end to end;
   - the lock screen, sliding to unlock, the power menu, auto-sleep;
   - setting the clock;
-  - USB sharing and ejecting.
-- **0 leaks** under `leaks --atExit` (2026-11-23).
+  - USB sharing and ejecting;
+  - setting a passcode, a wrong one, the right one;
+  - three Library sort orders (recently read, published, author);
+  - the Home grid, and covers in color.
+- **0 leaks** under `leaks --atExit` (2026-11-24, a scripted session through every screen: sorting, a dictionary lookup, setting a passcode, sleep, unlocking with it, USB sharing, the power menu).
 - **All 72 test books' chapters** line up with the progress weighting.
 - **The ARM binary under QEMU**: frames identical to the Mac's, except at most 6 gray levels where pictures are scaled.
 - **`python3 -I scripts/dict/respell.py`** checks the respelling against 33 known words.

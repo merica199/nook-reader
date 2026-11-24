@@ -16,9 +16,9 @@
  * turn back on the way in. If the picture comes out upside down, run
  * with MR_ROTATE=ccw to turn the other way.
  *
- * Buttons: n (KEY_HOME) is home; volume down goes forward, volume up
- * back; power is reported pressed and released, so the reader can
- * tell a press (sleep) from a hold (the power-off menu).
+ * Buttons: n (KEY_HOME) is home; power is reported pressed and
+ * released, so the reader can tell a press (sleep) from a hold (the
+ * power-off menu). The volume buttons do nothing.
  *
  * MyNook's init sets MYNOOK=1. Without it (testing under Android),
  * sleep only turns the backlight off, "power off" just returns (the
@@ -57,8 +57,11 @@ static int rotated;	/* panel is landscape, reader is portrait */
 static int ccw;		/* turn the other way (MR_ROTATE=ccw) */
 static int pw, ph;	/* the size the reader sees */
 
-/* Gray byte to a screen pixel, whatever the screen's format. */
-static uint32_t lut[256];
+/*
+ * One byte of red, green or blue to its bits in a screen pixel,
+ * whatever the screen's format: three tables, OR'd together.
+ */
+static uint32_t lut_r[256], lut_g[256], lut_b[256];
 
 static uint32_t pack(unsigned v, const struct fb_bitfield *f)
 {
@@ -95,13 +98,15 @@ static int open_screen(void)
 	}
 
 	/*
-	 * RGB565 on the Nook: 5 bits red, 6 green, 5 blue. A gray level
-	 * keeps its top bits in each channel. Opaque alpha if there is
-	 * an alpha channel at all.
+	 * RGB565 on the Nook: 5 bits red, 6 green, 5 blue. Each channel
+	 * keeps its top bits. Opaque alpha (in the red table, so it's
+	 * added once) if there is an alpha channel at all.
 	 */
-	for (unsigned v = 0; v < 256; v++)
-		lut[v] = pack(v, &var.red) | pack(v, &var.green) |
-			 pack(v, &var.blue) | pack(255, &var.transp);
+	for (unsigned v = 0; v < 256; v++) {
+		lut_r[v] = pack(v, &var.red) | pack(255, &var.transp);
+		lut_g[v] = pack(v, &var.green);
+		lut_b[v] = pack(v, &var.blue);
+	}
 
 	rotated = var.xres > var.yres;
 	pw = rotated ? var.yres : var.xres;
@@ -138,7 +143,7 @@ static void from_panel(int lx, int ly, int *px, int *py)
 	}
 }
 
-static void fb_present(const unsigned char *gray, int stride)
+static void fb_present(const unsigned char *rgb, int stride)
 {
 	int bpp = var.bits_per_pixel / 8;
 	uint8_t *base = fb_mem + var.yoffset * fix.line_length +
@@ -154,7 +159,8 @@ static void fb_present(const unsigned char *gray, int stride)
 		for (int lx = 0; lx < (int)var.xres; lx++) {
 			int px, py;
 			from_panel(lx, ly, &px, &py);
-			uint32_t v = lut[gray[py * stride + px]];
+			const unsigned char *p = rgb + py * stride + px * 3;
+			uint32_t v = lut_r[p[0]] | lut_g[p[1]] | lut_b[p[2]];
 			if (bpp == 2)
 				((uint16_t *)row)[lx] = (uint16_t)v;
 			else
@@ -275,12 +281,11 @@ static void handle(struct input *in, const struct raw_event *ev)
 		case KEY_HOME:
 			push(MR_EV_HOME, 0, 0);
 			break;
-		case KEY_VOLUMEDOWN:
-			push(MR_EV_NEXT, 0, 0);
-			break;
-		case KEY_VOLUMEUP:
-			push(MR_EV_PREV, 0, 0);
-			break;
+		/*
+		 * Volume up and down do nothing yet: nothing makes a
+		 * sound. (KEY_VOLUMEDOWN and KEY_VOLUMEUP, from the
+		 * twl4030 keypad, are where to start if they ever should.)
+		 */
 		case BTN_TOUCH:
 		case BTN_LEFT:
 			in->want_down = 1;
