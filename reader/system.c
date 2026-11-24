@@ -9,9 +9,11 @@
  * its knob across goes back to where you were. The lock screen goes
  * dark again by itself if nobody slides it.
  *
- * Plugged into a computer, the Nook doesn't sleep by itself: asleep,
- * the USB connection drops, and the computer would see its drive
- * vanish. A plain charger doesn't count; it sleeps as usual.
+ * While its drive is connected to a computer, the Nook dims but
+ * doesn't sleep by itself: asleep, the USB connection drops, and the
+ * computer would see its drive vanish mid-copy. On a charger, or
+ * plugged into a computer with "Charge only", it dims and sleeps as
+ * usual.
  */
 #include <limits.h>
 #include <stdio.h>
@@ -188,6 +190,8 @@ static void show_message(struct app *a, const char *title,
 		mr_text(ctx, a->pix, a->w / 2, a->h / 2 + 10, body,
 			MR_REGULAR, 22, MR_GRAY, a->w - 2 * MARGIN,
 			MR_CENTER);
+	if (a->lib.set.dark)
+		apply_dark(a);
 	a->plat->present(fz_pixmap_samples(ctx, a->pix),
 			 fz_pixmap_stride(ctx, a->pix));
 }
@@ -278,15 +282,21 @@ int sys_tick(struct app *a)
 	long long now = app_now(a);
 	long long idle = now - a->last_input;
 	long long dim = setting_dim_ms(a), slp = setting_sleep_ms(a);
-	int busy = a->down || a->power_down || a->usb != MR_USB_NONE;
+	/*
+	 * A finger or the power button down: nothing happens by itself.
+	 * The drive connected to a computer: it may dim, but never sleep,
+	 * which would drop the USB link mid-copy.
+	 */
+	int busy = a->down || a->power_down;
+	int no_sleep = busy || a->usb_sharing;
 
 	if (locked(a)) {
-		if (now >= a->lock_until && !busy) {
+		if (now >= a->lock_until && !no_sleep) {
 			sys_sleep(a);
 			return 0;
 		}
 	} else if (!busy) {
-		if (slp && idle >= slp) {
+		if (slp && idle >= slp && !no_sleep) {
 			sys_sleep(a);
 			return 0;
 		}
@@ -322,17 +332,18 @@ int sys_wait_ms(struct app *a)
 	if (a->power_down && !a->power_long)
 		SOON(a->power_at + POWER_HOLD_MS);
 	if (!a->asleep) {
-		int busy = a->down || a->power_down ||
-			   a->usb != MR_USB_NONE;
+		/* the same rules as sys_tick */
+		int busy = a->down || a->power_down;
+		int no_sleep = busy || a->usb_sharing;
 		long long dim = setting_dim_ms(a);
 		long long slp = setting_sleep_ms(a);
 		if (locked(a)) {
-			if (!busy)
+			if (!no_sleep)
 				SOON(a->lock_until);
 		} else if (!busy) {
 			if (dim && !a->dimmed && light_now(a) >= 0)
 				SOON(a->last_input + dim);
-			if (slp)
+			if (slp && !no_sleep)
 				SOON(a->last_input + slp);
 		}
 		time_t t = app_time(a);

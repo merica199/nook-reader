@@ -37,11 +37,12 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
   - with `/rom/u-boot.altboot` set to `1`, a plain power-on starts MyNook;
   - the boot menu's "Internal eMMC Normal" still starts CyanogenMod with the default switched;
   - **the self-update**: 0.1.0 copied over the shared drive, installed, and restarted into (Settings showed the new version);
-  - sharing the books over USB under MyNook: the drive appeared on the Mac.
+  - sharing the books over USB under MyNook: the drive appeared on the Mac;
+  - `adb shell` under MyNook (0.2.0), as the `shell` user, after `/etc/mdev.conf` opened `/dev/ptmx`;
+  - charging from the Mac's USB port: about 12 mA net into the battery at 98% with the screen on (`current_now`), so a computer port barely charges an awake Nook.
 
 ## Not yet verified
 
-- **`adb shell` under MyNook.** Copying files works; the shell was refused, most likely because mdev made `/dev/ptmx` root-only and adbd runs as `shell`. `/etc/mdev.conf` opens it in 0.2.0.
 - **Sleep** through early suspend with no Android running, and the power button waking it.
 - **USB sharing** under MyNook: eject detection and remounting (the drive appearing on the Mac is verified).
 - **Plugging in while asleep** waking the screen: whether this kernel wakes from deep sleep on a charger. If it doesn't, the screen lights the next time something else wakes it.

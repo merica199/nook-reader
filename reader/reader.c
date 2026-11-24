@@ -47,7 +47,7 @@ static void ignore_message(void *user, const char *message)
  * Pictures in a book's pages get inverted too; covers on Home don't,
  * because they're drawn after this.
  */
-static void apply_dark(struct app *a)
+void apply_dark(struct app *a)
 {
 	static unsigned char table[256];
 	static int built;

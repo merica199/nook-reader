@@ -202,6 +202,7 @@ void ui_dialog(struct app *a, const char *title, const char *body,
 	       const char **buttons, int n, int on);
 int ui_dialog_hit(struct app *a, const char *body, int n, int x, int y);
 void draw_screen(struct app *a, enum mode m);
+void apply_dark(struct app *a);
 void ui_tabs(struct app *a);
 int ui_tab_hit(struct app *a, int x, int y, enum mode *to);
 void ui_button(struct app *a, int x, int y, int w, int h,

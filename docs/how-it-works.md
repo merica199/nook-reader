@@ -174,7 +174,7 @@ Plugging in or unplugging lights the screen: the kernel announces each power-sup
 
 "Sleep after" is one setting, the way Android (the Nook's own software) does it: the screen dims 10 seconds before sleeping, as a warning a touch cancels.
 
-Plugged into a computer, the Nook doesn't sleep by itself: suspended, the USB link drops, and the computer would see its drive vanish. A plain charger doesn't count.
+While its drive is connected to a computer, the Nook dims but doesn't sleep by itself: suspended, the USB link drops, and the computer would see its drive vanish mid-copy. On a charger, or with "Charge only", it dims and sleeps as usual.
 
 ## 8. USB
 

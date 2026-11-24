@@ -71,7 +71,7 @@ The dictionary is Wiktionary's English, about a million words, stored on the Noo
 **Device:**
 - **Dark mode:** light text on a dark page, easier at night. Covers keep their own colors.
 - **Brightness.**
-- **Sleep after:** 30 seconds to 5 minutes untouched, and the Nook sleeps. Tap the row to pick. Ten seconds before, the screen dims as a warning; any touch brightens it again, without turning the page, and starts the time over. It doesn't sleep by itself while plugged into a computer.
+- **Sleep after:** 30 seconds to 5 minutes untouched, and the Nook sleeps. Tap the row to pick. Ten seconds before, the screen dims as a warning; any touch brightens it again, without turning the page, and starts the time over. On a charger, or plugged into a computer with **Charge only**, it dims and sleeps as usual. While it's connected to a computer as a drive, it dims but doesn't sleep, so a copy is never cut off; eject it to let it sleep.
 - **Clock:** 12 hour ("2:05 PM") or 24 hour ("14:05").
 - **Date & time:** set the clock. The Nook has no network to set it, so it drifts a little over weeks.
 - **Passcode:** see above.
@@ -92,7 +92,7 @@ Which version is running is at the bottom of Settings, Device.
 
 ## Battery
 
-The battery is at the top of every screen, an icon and a percentage, with a lightning bolt while charging. The lock screen shows it large, with "Charging". Plugging in or unplugging lights up the lock screen for a moment, so you can see it took. The lock screen warns when it gets low. Asleep, the Nook should use very little power; how long a charge lasts under MyNook hasn't been measured yet.
+The battery is at the top of every screen, an icon and a percentage, with a lightning bolt while charging. A computer's USB port charges slowly: it gives about a quarter of what the Nook's own charger does, and an awake Nook uses most of that itself. Use the wall charger to charge quickly. The lock screen shows it large, with "Charging". Plugging in or unplugging lights up the lock screen for a moment, so you can see it took. The lock screen warns when it gets low. Asleep, the Nook should use very little power; how long a charge lasts under MyNook hasn't been measured yet.
 
 ## When something goes wrong
 
