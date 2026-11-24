@@ -75,7 +75,7 @@ This sets the bootloader's own switch: a one-byte file, `u-boot.altboot`, on the
 make update
 ```
 
-That builds MyNook and copies it, with its SHA-256, into `MyNook-update/` on the Nook's drive, then ejects it. MyNook takes the drive back, checks the file, installs it, and restarts into it. The version it replaced stays on the boot partition as `uAltRam.old`. The running version is shown at the bottom of Settings, Device.
+That builds MyNook and copies it, with its SHA-256, into `MyNook-update/` on the Nook's drive, then ejects it. MyNook takes the drive back, checks the file, installs it, and restarts into it. The version it replaced stays on the boot partition as `uAltRam.old`. The running version is shown at the bottom of Settings, Device. Versions are MAJOR.MINOR.PATCH, from the `VERSION` file: patch releases fix bugs, minor releases add features, and 1.0.0 comes when everything listed as unverified in `docs/notes.md` has been checked on a Nook.
 
 To uninstall: `scripts/nook-install.sh remove`, which deletes the two files.
 

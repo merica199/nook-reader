@@ -11,11 +11,11 @@ SRCS = reader.c ui.c home.c library.c settings.c book.c books.c \
        platform_script.c
 HDRS = app.h platform.h books.h draw.h epub.h dict.h
 
-# Which build this is (Settings, Device, at the bottom): the git
-# commit, "+" if there were changes not yet committed. Worked out on
-# the Mac and passed into the container, which can't read the repo.
-VERSION ?= $(shell git describe --always --dirty=+ 2>/dev/null || \
-	     echo unknown)
+# Which release this is (Settings, Device, at the bottom), from the
+# VERSION file at the top of the repo: MAJOR.MINOR.PATCH, bumped by
+# hand for each release (patch for fixes, minor for features, 1.0.0
+# when everything in docs/notes.md is verified on the Nook).
+VERSION ?= $(shell cat ../VERSION 2>/dev/null || echo unknown)
 
 # ---- Mac ----
 CC = cc
