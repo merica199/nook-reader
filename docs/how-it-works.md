@@ -22,7 +22,7 @@ The partitions that matter:
 | | Holds | MyNook |
 |---|---|---|
 | p1 | boot: bootloader, kernels, startup archives (FAT) | the bootloader reads MyNook from here |
-| p2 | `/rom`: serial number, factory data, boot counter (FAT) | never touched |
+| p2 | `/rom`: serial number, factory data, boot counter (FAT) | one file, only if MyNook is made the default: `u-boot.altboot` |
 | p5 | CyanogenMod's system (ext4) | mounted read-only, for `adbd` |
 | p6 | CyanogenMod's data (ext4) | MyNook's files in `/data/mynook` |
 | p8 | the books, "MyNOOKcolor" (FAT) | mounted at `/storage/sdcard1`, and shared over USB |
@@ -36,7 +36,9 @@ boot ROM  ->  MLO  ->  u-boot.bin  ->  kernel + startup archive  ->  /init
 ```
 
 1. **The boot ROM**, built into the OMAP chip, loads `MLO` from the boot partition into the chip's internal RAM. `MLO` is a first-stage loader small enough to fit there. It sets up the external RAM and loads the second stage.
-2. **`u-boot.bin`**, CyanogenMod's build of U-Boot, decides what to boot. Its script, read out of the binary, has three choices: `normalboot` (`uImage` + `uRamdisk`, CyanogenMod), `recoveryboot` (`uRecImg` + `uRecRam`), and `altboot` (`uAltImg` + `uAltRam`). Its screen says "Hold ^ for menu"; on the Nook that should be the **n** button (to be confirmed on the first boot). The menu's "Internal eMMC Alternate" is MyNook.
+2. **`u-boot.bin`**, CyanogenMod's build of U-Boot, decides what to boot. Its script, read out of the binary, has three choices: `normalboot` (`uImage` + `uRamdisk`, CyanogenMod), `recoveryboot` (`uRecImg` + `uRecRam`), and `altboot` (`uAltImg` + `uAltRam`). Its screen says "Hold ^ for menu"; on the Nook that's the **n** button. The menu's "Internal eMMC Alternate" is MyNook.
+
+   Which slot boots **without** the menu is the bootloader's own switch: if `/rom` has a file `u-boot.altboot` holding `1` (and `uAltImg` exists), Alternate becomes the default (`checkforalt` in its script). `scripts/nook-install.sh default` writes that one byte, and `nodefault` deletes it. Patching the bootloader or swapping the slots would also change the default, but the first risks a Nook that can't boot, and the second trips the boot counter below.
 3. **The kernel** (`uAltImg`, a copy of CyanogenMod's `uImage`: Linux 3.0.8) starts with the startup archive (`uAltRam`) sitting in RAM beside it. The archive is a gzip'd cpio (a simple archive format, a list of files with their contents) behind a 64-byte U-Boot header. The kernel unpacks it into a RAM filesystem and runs `/init` from it. So MyNook lives entirely in RAM: about 20 MB, read once at boot.
 
 Why the alternate slot and not CyanogenMod's own: every normal boot adds one to a counter on p2 (`devconf/BootCnt`), and CyanogenMod resets it once it's up. If the counter ever passes 7, the bootloader assumes the system is broken and **restores the Nook to factory settings**. `altboot` never touches the counter, so MyNook can't trip it.
@@ -67,7 +69,7 @@ Four small files in `os/overlay/`, on top of BusyBox (one program that provides 
   5. starts CyanogenMod's `adbd` from p5. It's an Android program, so it may not run outside Android, but nothing else depends on it.
 - **`/usr/bin/mynook-session`** sets the environment and runs the reader. `MYNOOK=1` makes sleep, power off and USB sharing real. `TZ=EST5EDT,M3.2.0,M11.1.0` is Eastern time with its daylight saving rules, in the POSIX format musl reads. The reader's output goes to `/data/mynook/log`.
 
-Power off and restart: the reader signals `init` (SIGUSR2 to power off, SIGTERM to restart). `init` runs `stop`, which syncs and unmounts, then asks the kernel to power off or reboot. A reboot lands in the bootloader's default, which is CyanogenMod.
+Power off and restart: the reader signals `init` (SIGUSR2 to power off, SIGTERM to restart). `init` runs `stop`, which syncs and unmounts, then asks the kernel to power off or reboot. A reboot lands in the bootloader's default: MyNook if it's been made the default, else CyanogenMod.
 
 ## 5. The reader
 

@@ -2,6 +2,8 @@
 # Install MyNook on the Nook, beside CyanogenMod, over adb.
 #
 #   scripts/nook-install.sh            install or update
+#   scripts/nook-install.sh default    make MyNook start at power-on
+#   scripts/nook-install.sh nodefault  make CyanogenMod start again
 #   scripts/nook-install.sh remove     take MyNook off again
 #
 # Run it while CyanogenMod is up and the Nook is plugged in (or, once
@@ -22,7 +24,11 @@
 #
 # To start MyNook: power off, then power on holding the n button until
 # the boot menu shows, and choose "Internal eMMC Alternate". Without
-# the menu the Nook starts CyanogenMod, as before.
+# the menu the Nook starts CyanogenMod, as before, unless MyNook is
+# made the default: "default" writes the bootloader's own switch, a
+# one-byte file /rom/u-boot.altboot holding "1". It's the only write
+# MyNook ever makes to /rom (p2, where the Nook keeps its serial
+# number and factory data).
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -61,9 +67,23 @@ unmount_p1() {
 	adb shell "sync; umount $P1; rmdir $P1"
 }
 
+SWITCH=/rom/u-boot.altboot
+if [ "$1" = default ]; then
+	adb shell "busybox printf 1 > $SWITCH; sync"
+	sh_ok "[ \"\$(cat $SWITCH)\" = 1 ]" || refuse "couldn't write $SWITCH"
+	echo "MyNook now starts at power-on. For CyanogenMod, hold n"
+	echo "while the Nook starts and choose \"Internal eMMC Normal\"."
+	exit 0
+fi
+if [ "$1" = nodefault ]; then
+	adb shell "rm -f $SWITCH; sync"
+	echo "CyanogenMod starts at power-on again."
+	exit 0
+fi
+
 if [ "$1" = remove ]; then
 	mount_p1
-	adb shell "rm -f $P1/uAltImg $P1/uAltRam"
+	adb shell "rm -f $P1/uAltImg $P1/uAltRam; rm -f $SWITCH; sync"
 	unmount_p1
 	echo "MyNook removed from the boot partition."
 	echo "(/data/mynook, with the dictionary and saved places, stays.)"
@@ -123,4 +143,5 @@ fi
 echo
 echo "Installed. To start MyNook: power off, then power on holding"
 echo "the n button until the boot menu shows, and choose"
-echo "\"Internal eMMC Alternate\"."
+echo "\"Internal eMMC Alternate\". To start it without the menu:"
+echo "scripts/nook-install.sh default"

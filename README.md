@@ -4,7 +4,7 @@
 
 An e-reader for the Barnes & Noble Nook Color (2010), and **MyNook**, the tiny Linux system it runs on. The Nook turns on into the book you were reading. The n button goes Home; Home, Library and Settings are one tap apart. There's no launcher, no store and no separate app to open: just the reader, the way the Nook's own software worked, without the clutter.
 
-The reader is about 6,000 lines of C on [MuPDF](https://mupdf.com/). MyNook is BusyBox and four short shell scripts, booted by the Nook's existing CyanogenMod kernel and bootloader. It installs **beside** CyanogenMod: two new files on the boot partition, chosen from the boot menu. Nothing that's already there is replaced.
+The reader is about 6,000 lines of C on [MuPDF](https://mupdf.com/). MyNook is BusyBox and four short shell scripts, booted by the Nook's existing CyanogenMod kernel and bootloader. It installs **beside** CyanogenMod: two new files on the boot partition, chosen from the boot menu, or started at every power-on if you make it the default. Nothing that's already there is replaced.
 
 ## Which Nook this is for
 
@@ -59,7 +59,15 @@ make install
 
 This backs up the boot partition to `os/out/p1-backup.img`, then adds `uAltImg` and `uAltRam` beside CyanogenMod's files. It also copies the dictionary to `/data/mynook`.
 
-To start MyNook, power off. Then power on holding the **n** button until the boot menu appears (the bootloader's screen says "Hold ^ for menu"), and choose **Internal eMMC Alternate**. Starting normally still boots CyanogenMod. Inside MyNook, the power menu's **Restart** goes back to CyanogenMod.
+To start MyNook, power off. Then power on holding the **n** button until the boot menu appears (the bootloader's screen says "Hold ^ for menu"), and choose **Internal eMMC Alternate**. Starting normally still boots CyanogenMod.
+
+To have the Nook start MyNook at every power-on, with nothing to hold:
+
+```
+scripts/nook-install.sh default     # and "nodefault" to undo
+```
+
+This sets the bootloader's own switch: a one-byte file, `u-boot.altboot`, on the `/rom` partition. It's the only thing MyNook ever writes there (`/rom` holds the Nook's serial number and factory data). With it set, CyanogenMod is in the boot menu (hold n, choose **Internal eMMC Normal**), and MyNook's **Restart** comes back to MyNook.
 
 To uninstall: `scripts/nook-install.sh remove`, which deletes the two files.
 

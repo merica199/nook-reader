@@ -445,10 +445,10 @@ int on_lock(struct app *a, const struct action *act)
 
 static const char *power_body(void)
 {
-	/* only MyNook can restart into the other system */
+	/* only under MyNook is there another system to start */
 	return getenv("MYNOOK") ?
-	       "Restart opens CyanogenMod. To come back, hold n while "
-	       "the Nook starts and choose Alternate." : NULL;
+	       "Restart starts the Nook's default system. Hold n while "
+	       "it starts for the menu, to choose." : NULL;
 }
 
 static const char *power_buttons[] = { "Power off", "Restart",

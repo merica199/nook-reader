@@ -30,17 +30,28 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
   - `uAltRam` on the Nook matches the build by SHA-256;
   - `uAltImg` is identical to `uImage`.
 
+- **2026-11-24, MyNook on the Nook:**
+  - n opens the boot menu; "Internal eMMC Alternate" boots MyNook;
+  - the reader starts into the book, in color; touch works after the slot fix (below), and the buttons;
+  - USB shows up on the Mac, with adb, after the `android_adb` fix (below);
+  - with `/rom/u-boot.altboot` set to `1`, a plain power-on starts MyNook.
+
 ## Not yet verified
 
-- **MyNook's first boot.** Which button opens the boot menu (n is expected), and whether the kernel runs `/init` from the archive.
+- **The boot menu with the default switched:** that "Internal eMMC Normal" still starts CyanogenMod.
+- **`adb shell` under MyNook** (devpts is now mounted; file copies already worked).
 - **Sleep** through early suspend with no Android running, and the power button waking it.
 - **USB sharing** under MyNook: the drive appearing on the Mac, eject detection, remounting.
-- **`adbd`** from CyanogenMod's `/system` running outside Android.
 - **Power off** (SIGUSR2 to BusyBox init), and restart landing in CyanogenMod.
 - **Speed** on the Nook: opening books, the dictionary lookup, drawing covers, and color frames (three table lookups a pixel instead of one).
 - **Color** on the Nook's own screen (RGB565 packing of real colors; only gray had been shown on it).
 
 ## Lessons
+
+- **Multitouch slots aren't always 0.** Under MyNook the Nook's touch driver put the first finger in slot 1; the reader only followed slot 0 and dropped every touch. It now follows whichever slot the first finger lands in, and reads the driver's current slot when it opens the device.
+- **Android's USB gadget waits for adbd.** With `adb` among its functions, this kernel keeps the whole USB connection off until adbd opens `/dev/android_adb`. Without Android's settings service, adbd drops to the `shell` user, and `mdev` makes that file root-only, so the computer saw nothing at all. MyNook opens the file to it, and lists adb only when adbd is installed.
+- **adbd lives in CyanogenMod's startup archive** (`/sbin/adbd`, statically linked), not on `/system`. The installer copies it to `/data/mynook`.
+- **If adb stops seeing the Nook** while it's plugged in under CyanogenMod, restart the Nook. On 2026-11-24 the USB connection got stuck half set up; replugging and toggling USB debugging didn't help, and a restart did.
 
 - **Lay out one chapter at a time.**
   - Drawing a page takes 0.3 to 0.5 ms (median), 20 to 50 ms at worst (pictures).
