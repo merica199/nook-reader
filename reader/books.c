@@ -72,8 +72,7 @@ static const struct {
 	{ "spacing", offsetof(mr_settings, spacing) },
 	{ "margin", offsetof(mr_settings, margin) },
 	{ "light", offsetof(mr_settings, light) },
-	{ "dim", offsetof(mr_settings, dim) },
-	{ "sleep", offsetof(mr_settings, sleep) },
+	{ "sleep_after", offsetof(mr_settings, sleep_after) },
 	{ "clock24", offsetof(mr_settings, clock24) },
 	{ "sort", offsetof(mr_settings, sort) },
 	{ "pass", offsetof(mr_settings, pass) },
@@ -102,8 +101,7 @@ void mr_library_load(mr_library *lib, const char *state_path)
 	lib->set.size = 2;
 	lib->set.dark = 1;
 	lib->set.light = -1;
-	lib->set.dim = 2;
-	lib->set.sleep = 2;
+	lib->set.sleep_after = 2;
 
 	FILE *f = fopen(state_path, "r");
 	if (!f)

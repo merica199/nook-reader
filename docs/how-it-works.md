@@ -103,7 +103,7 @@ The reader draws every frame into one 600x1024 RGB buffer (3 bytes a pixel), han
 
   Input is **evdev**: each `/dev/input/eventN` is a stream of 16-byte `struct input_event` records (timestamp, type, code, value). The touchscreen speaks multitouch protocol B. Finger 0's slot, position and tracking ID arrive as separate records, and `SYN_REPORT` closes each snapshot. Only then is the position complete enough to report. The struct is spelled out by hand, because musl's `time_t` is 64-bit and the 32-bit kernel writes 32-bit timestamps. The rest is sysfs files (backlight, battery, power state, USB) and `/dev/rtc0`.
 - **`platform_sdl.c`, a Mac window** at the Nook's size, through SDL2.
-- **`platform_script.c`, the test harness.** Commands come in on stdin (`t 300 250` is a tap, `o` the power button, `.` time passing) and every frame goes out as a PPM image. It keeps its own clock, so timers like "sleep after 10 minutes" can be tested without waiting.
+- **`platform_script.c`, the test harness.** Commands come in on stdin (`t 300 250` is a tap, `o` the power button, `.` time passing) and every frame goes out as a PPM image. It keeps its own clock, so timers like "sleep after 5 minutes" can be tested without waiting.
 
 The same reader binary works under Android too (`make run`): the framebuffer, evdev and sysfs are the kernel's, not Android's. Android only has to be paused, so it lets go of the screen and the touchscreen.
 
@@ -169,6 +169,8 @@ Android's kernel sleeps in two steps:
 2. The device really suspends as soon as no **wake lock** is held.
 
 MyNook takes the wake lock `mynook` at boot. To sleep, the reader writes `mem` and then releases `mynook`. The power button is wired as a wake-up source: pressing it resumes the kernel, and evdev holds its own wake lock until the reader has read that press. The reader then takes `mynook` back and writes `on`, the display comes back, and the lock screen is drawn.
+
+"Sleep after" is one setting, the way Android (the Nook's own software) does it: the screen dims 10 seconds before sleeping, as a warning a touch cancels.
 
 Plugged into a computer, the Nook doesn't sleep by itself: suspended, the USB link drops, and the computer would see its drive vanish. A plain charger doesn't count.
 

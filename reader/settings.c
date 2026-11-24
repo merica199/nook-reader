@@ -8,8 +8,9 @@
  *            "For: This book" gives that book its own instead, kept
  *            with it in the state file
 
- *   Device   dark mode, brightness, dim after, sleep after, 12 or 24
- *            hour clock, and setting the date and time
+ *   Device   dark mode, brightness, sleep after (the screen dims
+ *            10 seconds before), 12 or 24 hour clock, setting the
+ *            date and time, the passcode
  *
  * Rows the device can't do (no backlight, no clock to set) are left
  * off. Every setting is an index into a list of choices here, so the
@@ -50,9 +51,18 @@ static const char *spacing_css[] = {
 	"* { line-height: 1.75 !important; }",
 };
 
-/* Dim and sleep after this many minutes of nothing (0: never). */
-static const int dim_min[] = { 0, 1, 2, 5 };
-static const int sleep_min[] = { 0, 5, 10, 15, 30 };
+/*
+ * Sleep after this long untouched, the way Android (and so the Nook's
+ * own software) does it: one setting, and the screen dims DIM_WARN_MS
+ * before, as a warning a touch cancels.
+ */
+static const int sleep_s[] = { 30, 60, 120, 180, 300 };
+static const char *sleep_names[] = {
+	"30 seconds", "1 minute", "2 minutes", "3 minutes", "5 minutes",
+};
+#define DIM_WARN_MS 10000
+static const char sleep_body[] =
+	"The screen dims 10 seconds before. A touch keeps it awake.";
 #define COUNT(a) (int)(sizeof a / sizeof *a)
 
 static int clamp(int v, int lo, int hi)
@@ -100,16 +110,19 @@ int setting_margin_px(struct app *a)
 	return margins_px[clamp(*style(a, ST_MARGIN), 0, 2)];
 }
 
-long long setting_dim_ms(const struct app *a)
+static int sleep_index(const struct app *a)
 {
-	return dim_min[clamp(a->lib.set.dim, 0, COUNT(dim_min) - 1)] *
-	       60000LL;
+	return clamp(a->lib.set.sleep_after, 0, COUNT(sleep_s) - 1);
 }
 
 long long setting_sleep_ms(const struct app *a)
 {
-	return sleep_min[clamp(a->lib.set.sleep, 0,
-			       COUNT(sleep_min) - 1)] * 60000LL;
+	return sleep_s[sleep_index(a)] * 1000LL;
+}
+
+long long setting_dim_ms(const struct app *a)
+{
+	return setting_sleep_ms(a) - DIM_WARN_MS;
 }
 
 /*
@@ -133,11 +146,12 @@ enum kind {
 	SEG,	/* one of a few choices, side by side */
 	BUTTON,	/* opens another screen */
 	PASS,	/* "Set", or "Change" and "Turn off" */
+	PICK,	/* the choice now; tap for a box of them all */
 };
 
 enum row_id {
 	R_FOR, R_SIZE, R_FONT, R_SPACING, R_MARGIN,
-	R_DARK, R_LIGHT, R_DIM, R_SLEEP, R_CLOCK24, R_SETTIME, R_PASS,
+	R_DARK, R_LIGHT, R_SLEEP, R_CLOCK24, R_SETTIME, R_PASS,
 };
 
 struct row {
@@ -158,8 +172,7 @@ static const struct row reading_rows[] = {
 static const struct row device_rows[] = {
 	{ R_DARK, SEG, "Dark mode", { "Off", "On" } },
 	{ R_LIGHT, STEP, "Brightness", { 0 } },
-	{ R_DIM, SEG, "Dim after", { "Off", "1 min", "2", "5" } },
-	{ R_SLEEP, SEG, "Sleep after", { "Off", "5 min", "10", "15", "30" } },
+	{ R_SLEEP, PICK, "Sleep after", { 0 } },
 	{ R_CLOCK24, SEG, "Clock", { "2:05 PM", "14:05" } },
 	{ R_SETTIME, BUTTON, "Date & time", { "Set" } },
 	{ R_PASS, PASS, "Passcode", { 0 } },
@@ -178,8 +191,7 @@ static int page_rows(struct app *a, const struct row **out)
 	int n = a->settings_page ? COUNT(device_rows) : COUNT(reading_rows);
 	int k = 0;
 	for (int i = 0; i < n; i++) {
-		if ((src[i].id == R_LIGHT || src[i].id == R_DIM) &&
-		    !has_light(a))
+		if (src[i].id == R_LIGHT && !has_light(a))
 			continue;
 		if (src[i].id == R_SETTIME && !a->plat->set_time)
 			continue;
@@ -209,10 +221,8 @@ static int *row_value(struct app *a, enum row_id id)
 		return style(a, ST_MARGIN);
 	case R_DARK:
 		return &a->lib.set.dark;
-	case R_DIM:
-		return &a->lib.set.dim;
 	case R_SLEEP:
-		return &a->lib.set.sleep;
+		return &a->lib.set.sleep_after;
 	case R_CLOCK24:
 		return &a->lib.set.clock24;
 	default:
@@ -253,6 +263,9 @@ static void btn_box(struct app *a, const struct row *r, int k, int i,
 	} else if (r->kind == BUTTON) {
 		*w = 140;
 		*x = CTRL_X + ctrl_w - 140;
+	} else if (r->kind == PICK) {
+		*w = ctrl_w;
+		*x = CTRL_X;
 	} else if (r->kind == PASS) {
 		/* two buttons at the right end, or one if no passcode */
 		*w = 140;
@@ -377,6 +390,10 @@ void draw_settings(struct app *a)
 				MR_BOLD, 24, MR_BLACK, 0, MR_CENTER);
 			btn_box(a, r, k, 1, &bx, &by, &bw);
 			ui_button(a, bx, by, bw, BTN_H, "+", 0);
+		} else if (r->kind == PICK) {
+			btn_box(a, r, k, 0, &bx, &by, &bw);
+			ui_button(a, bx, by, bw, BTN_H,
+				  sleep_names[sleep_index(a)], 0);
 		} else if (r->kind == PASS) {
 			int on = a->lib.set.pass != 0;
 			mr_text(ctx, a->pix, CTRL_X, ROW_TOP + k * ROW_H +
@@ -421,6 +438,9 @@ void draw_settings(struct app *a)
 			MR_REGULAR, 18, MR_GRAY, 0, MR_CENTER);
 	}
 	ui_tabs(a);
+	if (a->picking)
+		ui_dialog(a, "Sleep after", sleep_body, sleep_names,
+			  COUNT(sleep_s), sleep_index(a));
 }
 
 int on_settings(struct app *a, const struct action *act)
@@ -429,6 +449,18 @@ int on_settings(struct app *a, const struct action *act)
 	if (act->type != ACT_TAP)
 		return 0;
 	int x = act->x, y = act->y;
+
+	if (a->picking) {
+		/* a choice, or a tap outside to leave it as it was */
+		int i = ui_dialog_hit(a, sleep_body, COUNT(sleep_s), x,
+				      y);
+		a->picking = 0;
+		if (i >= 0) {
+			a->lib.set.sleep_after = i;
+			mr_library_save(&a->lib);
+		}
+		return 1;
+	}
 
 	enum mode to;
 	if (ui_tab_hit(a, x, y, &to)) {
@@ -459,6 +491,15 @@ int on_settings(struct app *a, const struct action *act)
 
 	int count = r->kind == SEG ? seg_count(r) :
 		    r->kind == STEP || r->kind == PASS ? 2 : 1;
+	if (r->kind == PICK) {
+		int bx, by, bw;
+		btn_box(a, r, k, 0, &bx, &by, &bw);
+		if (y >= by && y < by + BTN_H) {
+			a->picking = 1;
+			return 1;
+		}
+		return 0;
+	}
 	for (int i = 0; i < count; i++) {
 		int bx, by, bw;
 		/* no passcode: only "Set" (button 1) is there to tap */

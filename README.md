@@ -32,7 +32,7 @@ The installer checks before writing anything: it refuses unless the device repor
 - **Contents:** the book's table of contents, with the current chapter marked.
 - **Settings:**
   - Reading: text size (7 to 28 pt), font (the book's own, serif or sans), line spacing and margins, with a live preview. These are the defaults; any book can have its own instead ("For: This book"), and keeps them.
-  - Device: dark mode (on by default), brightness, dim after, sleep after, 12 or 24 hour clock, and the date and time.
+  - Device: dark mode (on by default), brightness, sleep after (30 seconds to 5 minutes; the screen dims 10 seconds before), 12 or 24 hour clock, the date and time, and the passcode.
 - **Lock screen:** a big clock, the date and the battery, and nothing about what you're reading; slide the knob across to unlock, with an optional 4 to 6 digit passcode. The power button sleeps and wakes; hold it for Power off or Restart.
 - **USB drive:** plug into a computer and choose "Share books". The books appear as a drive; eject it when you're done and reading picks up again.
 - **Progress** is weighted by chapter size, so 50% means halfway through the text, not halfway through the chapters. Your place is saved on every page turn.

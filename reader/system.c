@@ -3,8 +3,8 @@
  * the power button and its menu, setting the clock, and sharing the
  * books with a computer over USB.
  *
- * Awake, then (no input for "Dim after") dimmed, then (no input for
- * "Sleep after") asleep. The power button: a press sleeps, or wakes;
+ * Awake, then (no input for "Sleep after" less 10 seconds) dimmed,
+ * as a warning, then asleep. The power button: a press sleeps, or wakes;
  * a hold opens the power menu. Waking shows the lock screen; sliding
  * its knob across goes back to where you were. The lock screen goes
  * dark again by itself if nobody slides it.

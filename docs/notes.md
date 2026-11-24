@@ -34,14 +34,16 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
   - n opens the boot menu; "Internal eMMC Alternate" boots MyNook;
   - the reader starts into the book, in color; touch works after the slot fix (below), and the buttons;
   - USB shows up on the Mac, with adb, after the `android_adb` fix (below);
-  - with `/rom/u-boot.altboot` set to `1`, a plain power-on starts MyNook.
+  - with `/rom/u-boot.altboot` set to `1`, a plain power-on starts MyNook;
+  - the boot menu's "Internal eMMC Normal" still starts CyanogenMod with the default switched;
+  - **the self-update**: 0.1.0 copied over the shared drive, installed, and restarted into (Settings showed the new version);
+  - sharing the books over USB under MyNook: the drive appeared on the Mac.
 
 ## Not yet verified
 
-- **The boot menu with the default switched:** that "Internal eMMC Normal" still starts CyanogenMod.
-- **`adb shell` under MyNook** (devpts is now mounted; file copies already worked).
+- **`adb shell` under MyNook.** Copying files works; the shell was refused, most likely because mdev made `/dev/ptmx` root-only and adbd runs as `shell`. `/etc/mdev.conf` opens it in 0.2.0.
 - **Sleep** through early suspend with no Android running, and the power button waking it.
-- **USB sharing** under MyNook: the drive appearing on the Mac, eject detection, remounting.
+- **USB sharing** under MyNook: eject detection and remounting (the drive appearing on the Mac is verified).
 - **Power off** (SIGUSR2 to BusyBox init), and restart landing in CyanogenMod.
 - **Speed** on the Nook: opening books, the dictionary lookup, drawing covers, and color frames (three table lookups a pixel instead of one).
 - **Color** on the Nook's own screen (RGB565 packing of real colors; only gray had been shown on it).

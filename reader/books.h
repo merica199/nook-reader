@@ -81,8 +81,7 @@ typedef struct {
 	int spacing;	/* 0 the book's own, 1 wider, 2 widest */
 	int margin;	/* 0 narrow, 1 medium, 2 wide */
 	int light;	/* backlight percent; -1 = leave it alone */
-	int dim;	/* dim after: choice index, default 2 (2 min) */
-	int sleep;	/* sleep after: choice index, default 2 (10 min) */
+	int sleep_after;	/* choice index, default 2 (2 minutes) */
 	int clock24;	/* 0 "2:05 PM", 1 "14:05" */
 	int sort;	/* MR_SORT_* */
 	int pass;	/* the passcode's hash; 0 = no passcode */

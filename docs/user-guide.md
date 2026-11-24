@@ -71,8 +71,7 @@ The dictionary is Wiktionary's English, about a million words, stored on the Noo
 **Device:**
 - **Dark mode:** light text on a dark page, easier at night. Covers keep their own colors.
 - **Brightness.**
-- **Dim after:** the screen dims after this long untouched. Any touch brightens it again, without turning the page.
-- **Sleep after:** the Nook sleeps after this long untouched. It doesn't while plugged into a computer.
+- **Sleep after:** 30 seconds to 5 minutes untouched, and the Nook sleeps. Tap the row to pick. Ten seconds before, the screen dims as a warning; any touch brightens it again, without turning the page, and starts the time over. It doesn't sleep by itself while plugged into a computer.
 - **Clock:** 12 hour ("2:05 PM") or 24 hour ("14:05").
 - **Date & time:** set the clock. The Nook has no network to set it, so it drifts a little over weeks.
 - **Passcode:** see above.

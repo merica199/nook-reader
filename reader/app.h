@@ -134,6 +134,7 @@ struct app {
 	fz_irect dict_word;	/* the word on the page, highlighted */
 
 	int settings_page;	/* 0 Reading, 1 Device */
+	int picking;		/* Settings' "Sleep after" box is open */
 	int sort_open;		/* the Library's sort box is showing */
 
 	/*

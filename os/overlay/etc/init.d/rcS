@@ -46,15 +46,13 @@ mount -t vfat -o noatime,utf8,shortname=mixed /dev/mmcblk0p8 \
 # With "adb" among the functions, this kernel keeps the whole USB
 # connection off until adbd opens /dev/android_adb, so the computer
 # sees nothing at all, not even the drive. So: adb only if adbd is
-# here, and its device file open to it. adbd drops from root to the
-# "shell" user (uid 2000) once it starts, because there's no Android
-# settings service to tell it otherwise, and mdev made the file
-# root-only.
+# here. adbd drops from root to the "shell" user (uid 2000) once it
+# starts, because there's no Android settings service to tell it
+# otherwise; /etc/mdev.conf opens its device file to it.
 USB=/sys/class/android_usb/android0
 functions=mass_storage
 if [ -x /data/mynook/adbd ]; then
 	functions=mass_storage,adb
-	chmod 0666 /dev/android_adb
 fi
 serial=$(sed -n 's/.*androidboot.serialno=\([^ ]*\).*/\1/p' \
 	/proc/cmdline)
