@@ -1,0 +1,37 @@
+#!/bin/sh
+# adb over USB on or off: Settings, Device, USB debugging (off unless
+# turned on). The reader runs this when the setting changes, and rcS
+# at start-up if it's on.
+#
+#   mynook-adb on    adb and the drive, and adbd running
+#   mynook-adb off   the drive only; adbd stopped
+#
+# Off, a computer can't reach a shell on the Nook at all, so nobody
+# can get around the passcode with a cable.
+USB=/sys/class/android_usb/android0
+ADBD=/data/mynook/adbd
+
+gadget() {
+	echo 0 > $USB/enable
+	echo "$1" > $USB/functions
+	echo 1 > $USB/enable
+}
+
+case "$1" in
+on)
+	[ -x $ADBD ] || exit 1
+	pidof adbd >/dev/null && exit 0
+	gadget mass_storage,adb
+	PATH=/system/bin:/system/xbin:/usr/bin:/bin:/usr/sbin:/sbin \
+	ANDROID_ROOT=/system ANDROID_DATA=/data \
+		$ADBD >> /data/mynook/adbd.log 2>&1 &
+	;;
+off)
+	killall adbd 2>/dev/null
+	gadget mass_storage
+	;;
+*)
+	echo "usage: mynook-adb on|off" >&2
+	exit 2
+	;;
+esac

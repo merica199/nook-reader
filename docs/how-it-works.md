@@ -186,7 +186,11 @@ Plugged into a computer, MyNook asks: **Connect to computer** or **Charge only**
 
 **Connecting** unmounts p8 and writes `/dev/mmcblk0p8` into the drive's backing file (`f_mass_storage/lun0/file`). That's the card going in. Ejecting on the computer empties that file. The reader notices on its next look, mounts p8 again and rescans the library. Nothing re-enumerates, so adb stays connected throughout. The two systems never have the partition mounted at once, which is what keeps a FAT filesystem safe.
 
-## 9. Updates
+## 9. The passcode, and what it protects against
+
+The passcode is asked for at every wake-up and every start (a cold start opens on the lock screen). Only a hash of it is kept, in the state file, which is root's alone in a folder (`/data/mynook`, mode 0711) that other users can't list or change. adb is off unless Settings, Device, USB debugging is on (`os/overlay/usr/bin/mynook-adb`), so a cable alone gets nothing; the USB drive is only offered after unlocking. What it can't stop: starting CyanogenMod from the boot menu, which can read everything, because the storage isn't encrypted.
+
+## 10. Updates
 
 An update is two files in `MyNook-update/` at the top of the books drive: the new `uAltRam` and its SHA-256 as `shasum` prints it. `make update` puts them there over the shared drive and ejects it. MyNook looks for them at start-up and whenever the books come back from a computer. The reader runs as root, so it installs the update itself:
 
@@ -197,7 +201,7 @@ An update is two files in `MyNook-update/` at the top of the books drive: the ne
 
 Going back by hand: from CyanogenMod, rename `uAltRam.old` to `uAltRam` on the boot partition.
 
-## 10. Testing
+## 11. Testing
 
 1. **On the Mac**: the window for trying things by hand; the script harness for repeatable runs that produce images to compare.
 2. **The ARM binary, under QEMU**: `docker run --platform linux/arm/v7` runs the Nook build itself on the Mac, through the script harness. On the same walk, its frames match the Mac's byte for byte, except where a picture is scaled (at most 6 gray levels apart, from floating point on 32-bit ARM).

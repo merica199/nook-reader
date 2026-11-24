@@ -49,6 +49,8 @@ Nook Color, CyanogenMod 10.2.1 (Android 4.3.1), kernel 3.0.8.
 - **Sleep** through early suspend with no Android running, and the power button waking it.
 ## Known issues
 
+- **0.2.6 and earlier skipped the passcode on a cold start** (found 2026-11-24 by powering off and on): the reader started straight into the book. 0.2.7 starts at the lock screen. Also fixed in 0.2.8: adb was on whenever plugged in, even locked, and its shell could delete the state file and with it the passcode; adb is now off unless turned on, and the state file is root's alone.
+
 - **Plugging in or unplugging while asleep lights the screen after about 3 seconds** (2026-11-24, 0.2.4 and 0.2.5). Parked: it works, and it doesn't affect reading. What's known: the charger driver takes about 1 second to report a plug-in (the log shows a first power-supply uevent, then "plugged in" ~0.95 s later); once MyNook hears of it, it asks for the display within ~50 ms. 0.2.5 makes plugged-in sleep backlight-only and logs how long the display really takes to wake (`wait_for_fb_wake`); that log hasn't been read yet, and is the place to start.
 - **A wall charger** under MyNook: that it charges and doesn't ask about connecting.
 - **Speed** on the Nook: opening books, the dictionary lookup, drawing covers, and color frames (three table lookups a pixel instead of one).

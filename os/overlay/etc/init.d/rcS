@@ -25,6 +25,11 @@ hwclock -s -u
 mkdir -p /system /data /storage/sdcard1
 mount -t ext4 -o noatime /dev/mmcblk0p6 /data
 mkdir -p /data/mynook
+# MyNook's folder: others may reach a file whose name they know (the
+# logs), but not list, delete or replace anything; the saved state,
+# with the passcode, is root's alone.
+chmod 0711 /data/mynook
+chmod 0600 /data/mynook/state /data/mynook/state.tmp 2>/dev/null
 
 # From here on, everything this script says goes in a log that
 # CyanogenMod can read over adb if MyNook misbehaves, and the kernel's
@@ -39,21 +44,13 @@ mount -t ext4 -o ro /dev/mmcblk0p5 /system
 mount -t vfat -o noatime,utf8,shortname=mixed /dev/mmcblk0p8 \
 	/storage/sdcard1
 
-# USB, set up once the way CyanogenMod's init.encore.usb.rc does it:
-# a drive with nothing in it (until the reader shares the books) and
-# adb. The serial number is the Nook's own, from the bootloader.
-#
-# With "adb" among the functions, this kernel keeps the whole USB
-# connection off until adbd opens /dev/android_adb, so the computer
-# sees nothing at all, not even the drive. So: adb only if adbd is
-# here. adbd drops from root to the "shell" user (uid 2000) once it
-# starts, because there's no Android settings service to tell it
-# otherwise; /etc/mdev.conf opens its device file to it.
+# USB, set up the way CyanogenMod's init.encore.usb.rc does it: a
+# drive with nothing in it, until the reader shares the books. adb
+# only if Settings, Device, USB debugging is on (mynook-adb): with
+# "adb" among the functions this kernel keeps the whole connection
+# off until adbd is running, and adb while locked would get around
+# the passcode.
 USB=/sys/class/android_usb/android0
-functions=mass_storage
-if [ -x /data/mynook/adbd ]; then
-	functions=mass_storage,adb
-fi
 serial=$(sed -n 's/.*androidboot.serialno=\([^ ]*\).*/\1/p' \
 	/proc/cmdline)
 echo 0 > $USB/enable
@@ -63,17 +60,8 @@ echo MyNook > $USB/iManufacturer
 echo "Nook Color" > $USB/iProduct
 echo "$serial" > $USB/iSerial
 echo NookColor > $USB/f_mass_storage/inquiry_string
-echo $functions > $USB/functions
+echo mass_storage > $USB/functions
 echo 1 > $USB/enable
-
-# adb: CyanogenMod's own adbd. It lives in CyanogenMod's startup
-# archive, not on /system, so the installer copies it to
-# /data/mynook/adbd from the running CyanogenMod. It's statically
-# linked, so it runs here as it is. Its shell runs as "shell", not
-# root: enough to read /data/mynook; installing is done from
-# CyanogenMod.
-if [ -x /data/mynook/adbd ]; then
-	PATH=/system/bin:/system/xbin:/usr/bin:/bin:/usr/sbin:/sbin \
-	ANDROID_ROOT=/system ANDROID_DATA=/data \
-		/data/mynook/adbd >> /data/mynook/adbd.log 2>&1 &
+if grep -q "$(printf '^#adb\t1$')" /data/mynook/state 2>/dev/null; then
+	mynook-adb on
 fi

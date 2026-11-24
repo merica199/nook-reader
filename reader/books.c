@@ -77,6 +77,7 @@ static const struct {
 	{ "sort", offsetof(mr_settings, sort) },
 	{ "pass", offsetof(mr_settings, pass) },
 	{ "screen", offsetof(mr_settings, screen) },
+	{ "adb", offsetof(mr_settings, adb) },
 };
 #define N_SETTINGS (sizeof setting_keys / sizeof *setting_keys)
 

@@ -19,7 +19,7 @@ The lock screen shows the time, the date and the battery. It doesn't show what y
 
 **Passcode:** Settings, Device, Passcode, **Set**. Choose 4 to 6 digits and type them twice. From then on the keypad asks for it after the slider. **Change** and **Turn off** ask for the current passcode first.
 
-The passcode keeps casual hands out; it isn't encryption. If you forget it: start CyanogenMod, connect the Nook to a computer with adb, and remove the passcode line from the saved settings:
+The passcode keeps casual hands out; it isn't encryption. It's asked for after every wake-up and every start. With USB debugging off (the default), nobody can get around it with a cable; anyone who can start CyanogenMod from the boot menu can, since the Nook's storage isn't encrypted. If you forget it: start CyanogenMod, connect the Nook to a computer with adb, and remove the passcode line from the saved settings:
 
 ```
 adb shell "sed -i '/^#pass/d' /data/mynook/state"
@@ -76,6 +76,7 @@ The dictionary is Wiktionary's English, about a million words, stored on the Noo
 - **Clock:** 12 hour ("2:05 PM") or 24 hour ("14:05").
 - **Date & time:** set the clock. The Nook has no network to set it, so it drifts a little over weeks.
 - **Passcode:** see above.
+- **USB debugging:** off unless you turn it on. On, a computer with adb (Android's developer tool) can reach a shell on the Nook over USB, which is for development; leave it off otherwise, since it works even while the Nook is locked.
 
 **Done** (top right, while a book is open) goes back to the page.
 

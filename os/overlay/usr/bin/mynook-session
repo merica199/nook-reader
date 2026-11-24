@@ -24,5 +24,8 @@ echo "--- $(date) ---" >> $LOG
 
 # a crash loop shouldn't spin the CPU flat out
 sleep 1
+# files the reader makes (the saved state) are root's alone; the log,
+# made above, stays readable
+umask 077
 exec /usr/bin/reader "/storage/sdcard1/My Files/Books" \
 	/data/mynook/state >> $LOG 2>&1

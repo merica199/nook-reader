@@ -87,6 +87,7 @@ typedef struct {
 	int pass;	/* the passcode's hash; 0 = no passcode */
 	int screen;	/* where you were: 0 Home, 1 Library, 2 Settings,
 			   3 the book (system.c) */
+	int adb;	/* USB debugging: 0 off (the default), 1 on */
 } mr_settings;
 
 typedef struct {

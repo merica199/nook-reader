@@ -127,6 +127,9 @@ typedef struct mr_platform {
 	 * none, -1 if it refused or failed; msg says what happened.
 	 */
 	int (*update)(int install, char *msg, size_t n);
+
+	/* USB debugging (adb) on or off, at once. 0 on success. */
+	int (*adb)(int on);
 } mr_platform;
 
 extern const mr_platform mr_platform_sdl;	/* Mac window */

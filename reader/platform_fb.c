@@ -931,6 +931,17 @@ static int fb_update(int install, char *msg, size_t n)
 	return 1;
 }
 
+/* ---- USB debugging ---- */
+
+/* MyNook's helper does it: os/overlay/usr/bin/mynook-adb. */
+static int fb_adb(int on)
+{
+	if (!native)
+		return -1;
+	return system(on ? "/usr/bin/mynook-adb on"
+			 : "/usr/bin/mynook-adb off") == 0 ? 0 : -1;
+}
+
 static int fb_init(int *width, int *height)
 {
 	native = getenv("MYNOOK") != NULL;
@@ -967,4 +978,5 @@ const mr_platform mr_platform_fb = {
 	.usb_state = fb_usb_state,
 	.usb_share = fb_usb_share,
 	.update = fb_update,
+	.adb = fb_adb,
 };

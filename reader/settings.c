@@ -151,7 +151,7 @@ enum kind {
 
 enum row_id {
 	R_FOR, R_SIZE, R_FONT, R_SPACING, R_MARGIN,
-	R_DARK, R_LIGHT, R_SLEEP, R_CLOCK24, R_SETTIME, R_PASS,
+	R_DARK, R_LIGHT, R_SLEEP, R_CLOCK24, R_SETTIME, R_PASS, R_ADB,
 };
 
 struct row {
@@ -176,6 +176,7 @@ static const struct row device_rows[] = {
 	{ R_CLOCK24, SEG, "Clock", { "2:05 PM", "14:05" } },
 	{ R_SETTIME, BUTTON, "Date & time", { "Set" } },
 	{ R_PASS, PASS, "Passcode", { 0 } },
+	{ R_ADB, SEG, "USB debugging", { "Off", "On" } },
 };
 
 static int has_light(struct app *a)
@@ -194,6 +195,8 @@ static int page_rows(struct app *a, const struct row **out)
 		if (src[i].id == R_LIGHT && !has_light(a))
 			continue;
 		if (src[i].id == R_SETTIME && !a->plat->set_time)
+			continue;
+		if (src[i].id == R_ADB && !a->plat->adb)
 			continue;
 		/* "For: this book" only with a book open */
 		if (src[i].id == R_FOR && !a->doc)
@@ -223,6 +226,8 @@ static int *row_value(struct app *a, enum row_id id)
 		return &a->lib.set.dark;
 	case R_SLEEP:
 		return &a->lib.set.sleep_after;
+	case R_ADB:
+		return &a->lib.set.adb;
 	case R_CLOCK24:
 		return &a->lib.set.clock24;
 	default:
@@ -529,6 +534,17 @@ int on_settings(struct app *a, const struct action *act)
 			b->custom = i;
 			a->relayout = 1;
 			apply_settings(a);
+			mr_library_save(&a->lib);
+			return 1;
+		} else if (r->id == R_ADB) {
+			if (i == *v)
+				return 0;
+			if (a->plat->adb(i) != 0) {
+				snprintf(a->status, sizeof a->status,
+					 "Couldn't change USB debugging");
+				return 1;
+			}
+			*v = i;
 			mr_library_save(&a->lib);
 			return 1;
 		} else if (r->id == R_PASS) {
