@@ -7,7 +7,7 @@
  * as a warning, then asleep. The power button: a press sleeps, or wakes;
  * a hold opens the power menu. Waking shows the lock screen; sliding
  * its knob across goes back to where you were. The lock screen goes
- * dark again by itself if nobody slides it.
+ * dark again 5 seconds after it lit up or was last touched.
  *
  * While its drive is connected to a computer, the Nook dims but
  * doesn't sleep by itself: asleep, the USB connection drops, and the
@@ -22,8 +22,11 @@
 #include "app.h"
 
 #define POWER_HOLD_MS 1500	/* a hold, not a press: the power menu */
-#define LOCK_SHOW_MS 30000	/* the lock screen goes dark again */
-#define PLUG_SHOW_MS 5000	/* ... or sooner, lit by plugging in */
+/*
+ * The lock screen goes dark again this long after it lit up or was
+ * last touched, however it was woken (power button, n, plugging in).
+ */
+#define LOCK_SHOW_MS 5000
 #define USB_POLL_MS 2000	/* how often to look at the USB port */
 
 /* ---- light, sleep, waking ---- */
@@ -130,12 +133,11 @@ int sys_event(struct app *a, const mr_event *ev)
 	case MR_EV_CHARGER:
 		/*
 		 * Plugging in or out lights the screen for a moment, like a
-		 * phone, to show it took. A touch keeps it up longer.
+		 * phone, to show it took.
 		 */
 		a->last_input = now;
 		if (a->asleep) {
 			wake(a);
-			a->lock_until = now + PLUG_SHOW_MS;
 			return 1;
 		}
 		if (locked(a))
