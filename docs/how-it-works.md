@@ -170,7 +170,9 @@ Android's kernel sleeps in two steps:
 
 MyNook takes the wake lock `mynook` at boot. To sleep, the reader writes `mem` and then releases `mynook`. The power button is wired as a wake-up source: pressing it resumes the kernel, and evdev holds its own wake lock until the reader has read that press. The reader then takes `mynook` back and writes `on`, the display comes back, and the lock screen is drawn.
 
-Plugging in or unplugging lights the screen: the kernel announces each power-supply change as a uevent on a netlink socket, which the reader listens to beside the touchscreen and buttons. Only a change between charging and not counts, since the battery's level changes all the time.
+Plugging in or unplugging lights the screen: the kernel announces each power-supply change as a uevent on a netlink socket, which the reader listens to beside the touchscreen and buttons. Only a change between plugged in and not counts (`ac/online`, `usb/online`), since the battery's level changes all the time.
+
+Plugged in, "asleep" means screen off but not suspended: MyNook keeps its wake lock. Plugging in wakes a suspended Nook, but unplugging doesn't (the uevent only arrives at the next wake-up), and a suspend while plugged in left USB dead afterwards. Awake underneath, the reader sees the unplug at once, lights the lock screen, and then really suspends, on battery. After a real suspend, waking switches the USB gadget off and on, so plugging in connects again.
 
 "Sleep after" is one setting, the way Android (the Nook's own software) does it: the screen dims 10 seconds before sleeping, as a warning a touch cancels.
 

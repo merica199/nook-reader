@@ -605,18 +605,37 @@ static int fb_battery(int *charging)
  * boot, so letting go of it is what lets the device sleep. A button
  * wakes it; evdev holds its own wake lock until the reader has read
  * that press, and the reader takes "mynook" back before saying "on".
+ *
+ * Plugged in, it keeps "mynook": the screen goes off, but the device
+ * doesn't suspend. Unplugging doesn't wake a suspended Nook (checked
+ * 2026-11-24: the uevent arrived only at the next wake-up), and a
+ * suspend while plugged in leaves USB dead afterwards. Awake, the
+ * reader sees the unplug at once, lights the lock screen, and then
+ * really suspends, on battery.
  */
+static int deep;	/* really suspended: USB needs re-arming */
+static void usb_rearm(void);
+
 static void fb_sleep(int on)
 {
 	if (!on) {
 		light_raw(0);
 		if (native) {
+			int plugged = 0;
+			fb_battery(&plugged);
 			write_str("/sys/power/state", "mem");
-			write_str("/sys/power/wake_unlock", "mynook");
+			if (!plugged) {
+				write_str("/sys/power/wake_unlock", "mynook");
+				deep = 1;
+			}
 		}
 	} else if (native) {
 		write_str("/sys/power/wake_lock", "mynook");
 		write_str("/sys/power/state", "on");
+		if (deep) {
+			deep = 0;
+			usb_rearm();
+		}
 	}
 }
 
@@ -681,6 +700,17 @@ static int fb_set_time(time_t t)
 #define LUN USB "f_mass_storage/lun0/file"
 
 static int sharing;
+
+/*
+ * After a real suspend the USB link may not come back by itself (it
+ * didn't on 2026-11-24): switch the gadget off and on, as rcS set it
+ * up, so plugging in afterwards connects again.
+ */
+static void usb_rearm(void)
+{
+	write_str(USB "enable", "0");
+	write_str(USB "enable", "1");
+}
 
 static int fb_usb_state(void)
 {
