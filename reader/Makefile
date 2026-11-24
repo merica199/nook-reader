@@ -7,7 +7,7 @@
 #               README).
 
 SRCS = reader.c ui.c home.c library.c settings.c book.c books.c \
-       draw.c epub.c dict.c lookup.c system.c passcode.c \
+       draw.c epub.c dict.c lookup.c system.c passcode.c pictures.c \
        platform_script.c
 HDRS = app.h platform.h books.h draw.h epub.h dict.h
 

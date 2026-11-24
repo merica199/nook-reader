@@ -89,8 +89,34 @@ static void drop_toc(struct app *a)
 	a->contents.scroll = 0;
 }
 
+/*
+ * The part of the screen where the page shows through, for the
+ * pictures pass (pictures.c): all of it while reading, between the
+ * menu's panels, or beside the dictionary panel; never under a
+ * message at the bottom.
+ */
+fz_irect page_showing(struct app *a)
+{
+	fz_irect r = fz_make_irect(0, 0, a->w, a->h - FOOTER_H);
+	if (a->mode == MODE_MENU) {
+		r.y0 = MENU_TOP_H;
+		r.y1 = a->h - MENU_BOTTOM_H;
+	} else if (a->mode == MODE_DICT) {
+		if (a->dict_top == 0)
+			r.y0 = a->dict_h;
+		else
+			r.y1 = a->dict_top;
+	} else if (a->mode != MODE_BOOK) {
+		return fz_empty_irect;
+	}
+	if (a->status[0] && r.y1 > a->h - TOAST_H)
+		r.y1 = a->h - TOAST_H;
+	return r;
+}
+
 void close_book(struct app *a)
 {
+	drop_pictures(a->ctx);
 	if (a->style_path) {	/* back to the defaults */
 		a->style_path = NULL;
 		apply_settings(a);

@@ -69,7 +69,7 @@ The dictionary is Wiktionary's English, about a million words, stored on the Noo
 - **Line spacing** and **Margins.**
 
 **Device:**
-- **Dark mode:** light text on a dark page, easier at night. Covers keep their own colors.
+- **Dark mode:** light text on a dark page, easier at night. Covers and photos keep their own colors; drawings on a clear background are shown light on dark, so they stay readable.
 - **Brightness.**
 - **Sleep after:** 30 seconds to 5 minutes untouched, and the Nook sleeps. Tap the row to pick. Ten seconds before, the screen dims as a warning; any touch brightens it again, without turning the page, and starts the time over. On a charger, or plugged into a computer with **Charge only**, it dims and sleeps as usual. While it's connected to a computer as a drive, it dims but doesn't sleep, so a copy is never cut off; eject it to let it sleep.
 - **Clock:** 12 hour ("2:05 PM") or 24 hour ("14:05").

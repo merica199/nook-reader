@@ -121,9 +121,12 @@ void render_frame(struct app *a)
 	fz_try(a->ctx) {
 		draw_screen(a, a->mode);
 		ui_toast(a);
-		if (a->lib.set.dark)
+		if (a->lib.set.dark) {
 			apply_dark(a);
-		/* pictures keep their own colors: after the remap */
+			/* a book's photos: back to their own colors */
+			redraw_pictures(a, page_showing(a));
+		}
+		/* covers keep their own colors: after the remap */
 		if (a->mode == MODE_HOME)
 			draw_home_covers(a);
 	}

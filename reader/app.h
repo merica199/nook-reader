@@ -225,6 +225,11 @@ int on_menu(struct app *a, const struct action *act);
 void draw_contents(struct app *a);
 int on_contents(struct app *a, const struct action *act);
 
+/* pictures.c: pictures keep their colors in dark mode */
+void redraw_pictures(struct app *a, fz_irect clip);
+void drop_pictures(fz_context *ctx);
+fz_irect page_showing(struct app *a);
+
 /* lookup.c: the dictionary panel */
 int lookup_word(struct app *a, int x, int y);
 void close_dict(struct app *a);

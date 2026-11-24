@@ -118,7 +118,7 @@ next_event(timeout)  ->  system.c         ->  gestures     ->  the screen showin
 
 `next_event` takes a timeout, the soonest of the reader's timers. Those are: the hold on a word, the power button becoming a hold, dimming, sleep, the lock screen going dark, the minute turning on the clock, and the next look at the USB port. The touchscreen jitters, so a finger's hold is measured from the moment it touched, not from its last tiny movement.
 
-Each screen is a pair of functions, `draw_X` and `on_X`. After every change the whole frame is drawn again from scratch. Dark mode is a 256-entry table applied to every byte of the finished frame: paper (255) becomes 20 and ink (0) becomes 225. Book covers are drawn after that remap, so they keep their own colors; pictures inside a book's pages don't yet, and come out as negatives in dark mode.
+Each screen is a pair of functions, `draw_X` and `on_X`. After every change the whole frame is drawn again from scratch. Dark mode is a 256-entry table applied to every byte of the finished frame: paper (255) becomes 20 and ink (0) becomes 225. Book covers are drawn after that remap, so they keep their own colors. Pictures inside a book's pages would come out as negatives, so after the remap the page is run through MuPDF a second time, into a filter device that passes on only "draw this image" (`pictures.c`): opaque pictures land again in their own colors, clipped to the part of the page that shows. Pictures with a transparent background are usually line art, black on clear; they're left as negatives, which stay readable on a dark page.
 
 ### Books
 
