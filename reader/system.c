@@ -65,11 +65,17 @@ void sys_sleep(struct app *a)
 	if (!a->dimmed)
 		a->light_before = light_now(a);
 	a->dimmed = 0;
-	a->asleep = 1;
 	a->slide = a->sliding = 0;
 	a->down = 0;
 	if (a->plat->sleep)
 		a->plat->sleep(0);
+	/*
+	 * Draw the lock screen now, with the screen already dark, so it's
+	 * there the moment the screen comes back; waking then only has
+	 * to turn it on, and redraws with the time straight after.
+	 */
+	render_frame(a);
+	a->asleep = 1;
 }
 
 static void wake(struct app *a)

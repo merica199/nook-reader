@@ -116,7 +116,7 @@ void draw_screen(struct app *a, enum mode m)
 	}
 }
 
-static void render_frame(struct app *a)
+void render_frame(struct app *a)
 {
 	fz_try(a->ctx) {
 		draw_screen(a, a->mode);

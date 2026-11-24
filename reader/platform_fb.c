@@ -52,6 +52,17 @@
 
 static int native;	/* running as MyNook, not under Android */
 
+/* Milliseconds on the monotonic clock, for the timing lines in the log. */
+static long long mono_ms(void)
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (long long)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+
+/* When the last wake-up started; the first frame after it is timed. */
+static long long woke_at = -1;
+
 /* ---- screen ---- */
 
 static int fb_fd = -1;
@@ -176,6 +187,11 @@ static void fb_present(const unsigned char *rgb, int stride)
 	}
 	/* some drivers only refresh on a pan; harmless elsewhere */
 	ioctl(fb_fd, FBIOPAN_DISPLAY, &var);
+	if (woke_at >= 0) {
+		fprintf(stderr, "first frame after wake: %lld ms\n",
+			mono_ms() - woke_at);
+		woke_at = -1;
+	}
 }
 
 /* ---- input ---- */
@@ -451,8 +467,8 @@ static void read_uevents(void)
 	int charging = 0;
 	fb_battery(&charging);
 	/* in the log, to tell "no uevent" from "no change" */
-	fprintf(stderr, "power supply changed: %s%s\n",
-		charging ? "plugged in" : "on battery",
+	fprintf(stderr, "power supply changed at %lld ms: %s%s\n",
+		mono_ms(), charging ? "plugged in" : "on battery",
 		charging != was_charging ? "" : " (no change)");
 	if (charging != was_charging) {
 		was_charging = charging;
@@ -630,8 +646,12 @@ static void fb_sleep(int on)
 			}
 		}
 	} else if (native) {
+		woke_at = mono_ms();
 		write_str("/sys/power/wake_lock", "mynook");
 		write_str("/sys/power/state", "on");
+		fprintf(stderr, "wake at %lld ms: display on in %lld ms%s\n",
+			woke_at, mono_ms() - woke_at,
+			deep ? ", from a real suspend" : "");
 		if (deep) {
 			deep = 0;
 			usb_rearm();
