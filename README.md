@@ -1,5 +1,7 @@
 # nook-reader
 
+**MyNook** and its reader are by [@merica199](https://github.com/merica199).
+
 An e-reader for the Barnes & Noble Nook Color (2010), and **MyNook**, the tiny Linux system it runs on. The Nook turns on into the book you were reading. The n button goes Home; Home, Library and Settings are one tap apart. There's no launcher, no store and no separate app to open: just the reader, the way the Nook's own software worked, without the clutter.
 
 The reader is about 6,000 lines of C on [MuPDF](https://mupdf.com/). MyNook is BusyBox and four short shell scripts, booted by the Nook's existing CyanogenMod kernel and bootloader. It installs **beside** CyanogenMod: two new files on the boot partition, chosen from the boot menu. Nothing that's already there is replaced.
@@ -99,6 +101,8 @@ make install     # onto the Nook, over adb
 The reader runs on the Nook under Android (tested 2026-11-23 and 24): screen, touch, buttons, backlight and the dictionary all work. MyNook's first boot is the step in progress. See [docs/notes.md](docs/notes.md) for what's verified and what isn't yet.
 
 ## Credits and licenses
+
+**Author:** [@merica199](https://github.com/merica199), creator of MyNook and the reader.
 
 nook-reader is licensed under the [GNU AGPL v3](LICENSE), the license of MuPDF, which it's built on.
 
