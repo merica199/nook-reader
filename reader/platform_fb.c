@@ -622,13 +622,16 @@ static int fb_battery(int *charging)
  * wakes it; evdev holds its own wake lock until the reader has read
  * that press, and the reader takes "mynook" back before saying "on".
  *
- * Plugged in, it keeps "mynook": the screen goes off, but the device
- * doesn't suspend. Unplugging doesn't wake a suspended Nook (checked
- * 2026-11-24: the uevent arrived only at the next wake-up), and a
- * suspend while plugged in leaves USB dead afterwards. Awake, the
- * reader sees the unplug at once, lights the lock screen, and then
- * really suspends, on battery.
+ * Plugged in, "asleep" is only the backlight off: no early suspend,
+ * no suspend. Unplugging doesn't wake a suspended Nook (checked
+ * 2026-11-24: the uevent arrived only at the next wake-up), a suspend
+ * while plugged in left USB dead afterwards, and waking the display
+ * from early suspend takes a while (the panel's power-up sequence).
+ * With only the backlight off, the reader sees the unplug at once and
+ * lighting the screen is instant; then, on battery, it really
+ * suspends.
  */
+static int early;	/* "mem" written: the display is powered down */
 static int deep;	/* really suspended: USB needs re-arming */
 static void usb_rearm(void);
 
@@ -636,26 +639,40 @@ static void fb_sleep(int on)
 {
 	if (!on) {
 		light_raw(0);
-		if (native) {
-			int plugged = 0;
-			fb_battery(&plugged);
+		int plugged = 0;
+		fb_battery(&plugged);
+		if (native && !plugged) {
 			write_str("/sys/power/state", "mem");
-			if (!plugged) {
-				write_str("/sys/power/wake_unlock", "mynook");
-				deep = 1;
-			}
+			write_str("/sys/power/wake_unlock", "mynook");
+			early = deep = 1;
 		}
-	} else if (native) {
-		woke_at = mono_ms();
-		write_str("/sys/power/wake_lock", "mynook");
-		write_str("/sys/power/state", "on");
-		fprintf(stderr, "wake at %lld ms: display on in %lld ms%s\n",
-			woke_at, mono_ms() - woke_at,
-			deep ? ", from a real suspend" : "");
-		if (deep) {
-			deep = 0;
-			usb_rearm();
-		}
+		return;
+	}
+	woke_at = mono_ms();
+	if (!native || !early) {
+		fprintf(stderr, "wake at %lld ms: backlight only\n",
+			woke_at);
+		return;
+	}
+	write_str("/sys/power/wake_lock", "mynook");
+	write_str("/sys/power/state", "on");
+	/*
+	 * Android's own signal that the display is really back (what its
+	 * SurfaceFlinger waits for): reading this blocks until then.
+	 */
+	char buf[16];
+	int fd = open("/sys/power/wait_for_fb_wake", O_RDONLY);
+	if (fd >= 0) {
+		if (read(fd, buf, sizeof buf) < 0)
+			buf[0] = 0;
+		close(fd);
+	}
+	fprintf(stderr, "wake at %lld ms: display awake after %lld ms\n",
+		woke_at, mono_ms() - woke_at);
+	early = 0;
+	if (deep) {
+		deep = 0;
+		usb_rearm();
 	}
 }
 
