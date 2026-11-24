@@ -4,6 +4,23 @@ An e-reader for the Barnes & Noble Nook Color (2010), and **MyNook**, the tiny L
 
 The reader is about 6,000 lines of C on [MuPDF](https://mupdf.com/). MyNook is BusyBox and four short shell scripts, booted by the Nook's existing CyanogenMod kernel and bootloader. It installs **beside** CyanogenMod: two new files on the boot partition, chosen from the boot menu. Nothing that's already there is replaced.
 
+## Which Nook this is for
+
+> **Only the Barnes & Noble Nook Color** (model BNRV200, codename `encore`, released 2010; 7" color LCD, 1024x600), running **CyanogenMod 10.2** with root over adb. It was built and tested on one such Nook, running CyanogenMod 10.2.1.
+
+It will **not** work on other Nooks, even though several look similar:
+
+| Device | Why not |
+|---|---|
+| Nook Tablet (BNTV250, `acclaim`) | different board, kernel and bootloader |
+| Nook Simple Touch / GlowLight (BNRV300, BNRV350, later) | E Ink screen, different hardware |
+| Nook HD and HD+ (`hummingbird`, `ovation`) | different hardware |
+| The original Nook (BNRV100) | E Ink, different hardware |
+| Samsung Galaxy Tab "Nook" editions | Samsung tablets, not Nooks |
+| A Nook Color on the stock B&N software, or another ROM | MyNook needs CyanogenMod's kernel and its bootloader's alternate boot slot |
+
+The installer checks before writing anything: it refuses unless the device reports itself as `encore`, adb runs as root, and the bootloader has the alternate slot. The reader also builds and runs on a Mac (below), which needs no Nook at all.
+
 ## What it does
 
 - **Home:** the book you're reading, one tap to carry on, and a grid of the eight books read before it.
@@ -12,7 +29,7 @@ The reader is about 6,000 lines of C on [MuPDF](https://mupdf.com/). MyNook is B
 - **Dictionary:** press and hold a word for half a second. Its entry slides up over the other half of the screen: the word, how to say it ("ig-ZAM-puhl"), and numbered meanings. Inflected words show their base word too ("went", then "go"). It covers 1,042,340 English words from Wiktionary and works offline.
 - **Contents:** the book's table of contents, with the current chapter marked.
 - **Settings:**
-  - Reading: text size (7 to 28 pt), font (the book's own, serif or sans), line spacing and margins, with a live preview.
+  - Reading: text size (7 to 28 pt), font (the book's own, serif or sans), line spacing and margins, with a live preview. These are the defaults; any book can have its own instead ("For: This book"), and keeps them.
   - Device: dark mode (on by default), brightness, dim after, sleep after, 12 or 24 hour clock, and the date and time.
 - **Lock screen:** a big clock, the date, the battery and the book you're reading; slide the knob across to unlock, with an optional 4 to 6 digit passcode. The power button sleeps and wakes; hold it for Power off or Restart.
 - **USB drive:** plug into a computer and choose "Share books". The books appear as a drive; eject it when you're done and reading picks up again.

@@ -2,6 +2,8 @@
 
 How to use the reader on a Nook Color running MyNook. (For how it's built, see [how-it-works.md](how-it-works.md).)
 
+> **For the Barnes & Noble Nook Color (BNRV200) running CyanogenMod 10.2 only.** No other Nook, including the Nook Tablet, Simple Touch, GlowLight or HD; see [the README](../README.md#which-nook-this-is-for).
+
 ## Starting and stopping
 
 - **Start MyNook:** with the Nook off, hold the **n** button and press power. Keep holding n until the boot menu appears, then choose **Internal eMMC Alternate**. (Starting without the menu starts CyanogenMod, as before.)
@@ -60,7 +62,7 @@ The dictionary is Wiktionary's English, about a million words, stored on the Noo
 
 ## Settings
 
-**Reading** (the paragraph at the bottom shows the result as you change things):
+**Reading** (the paragraph at the bottom shows the result as you change things). These are your defaults, which every book follows. With a book open, a **For** row appears at the top. Choose **This book** to give that book its own settings: changes from then on apply to it alone, and it keeps them. Choosing **All books** again puts it back on the defaults.
 - **Text size:** 7 to 28 points.
 - **Font:** the book's own, or always serif, or always sans-serif.
 - **Line spacing** and **Margins.**

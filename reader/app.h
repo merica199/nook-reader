@@ -175,6 +175,12 @@ struct app {
 	 * has shuffled the array.
 	 */
 	const char *book_path;
+	/*
+	 * The book whose reading settings are in force (its own, if it
+	 * has them): the open one, or the one being opened. NULL: the
+	 * defaults.
+	 */
+	const char *style_path;
 	fz_document *doc;
 	fz_location loc;
 	int chapters;
@@ -259,8 +265,8 @@ int on_library(struct app *a, const struct action *act);
 /* settings.c */
 void draw_settings(struct app *a);
 int on_settings(struct app *a, const struct action *act);
-float setting_font_pt(const struct app *a);
-int setting_margin_px(const struct app *a);
+float setting_font_pt(struct app *a);
+int setting_margin_px(struct app *a);
 long long setting_dim_ms(const struct app *a);
 long long setting_sleep_ms(const struct app *a);
 void apply_settings(struct app *a);

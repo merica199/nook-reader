@@ -3,7 +3,11 @@
  *
  *   Reading  text size, font, line spacing, margins, and a paragraph
  *            laid out by the same engine with the same settings, so
- *            it shows exactly what a book will look like
+ *            it shows exactly what a book will look like. These are
+ *            the defaults every book follows; with a book open,
+ *            "For: This book" gives that book its own instead, kept
+ *            with it in the state file
+
  *   Device   dark mode, brightness, dim after, sleep after, 12 or 24
  *            hour clock, and setting the date and time
  *
@@ -52,14 +56,44 @@ static int clamp(int v, int lo, int hi)
 	return v < lo ? lo : v > hi ? hi : v;
 }
 
-float setting_font_pt(const struct app *a)
+/* The book whose settings are in force, if it has its own. */
+static mr_book *styled_book(struct app *a)
 {
-	return sizes_pt[clamp(a->lib.set.size, 0, N_SIZES - 1)];
+	if (!a->style_path)
+		return NULL;
+	for (int i = 0; i < a->lib.count; i++)
+		if (a->lib.items[i].path == a->style_path)
+			return a->lib.items[i].custom ? &a->lib.items[i]
+						      : NULL;
+	return NULL;
 }
 
-int setting_margin_px(const struct app *a)
+enum style_field { ST_SIZE, ST_FONT, ST_SPACING, ST_MARGIN };
+
+/* One reading setting as it stands: the book's own, or the default. */
+static int *style(struct app *a, enum style_field f)
 {
-	return margins_px[clamp(a->lib.set.margin, 0, 2)];
+	mr_book *b = styled_book(a);
+	switch (f) {
+	case ST_SIZE:
+		return b ? &b->style.size : &a->lib.set.size;
+	case ST_FONT:
+		return b ? &b->style.font : &a->lib.set.font;
+	case ST_SPACING:
+		return b ? &b->style.spacing : &a->lib.set.spacing;
+	default:
+		return b ? &b->style.margin : &a->lib.set.margin;
+	}
+}
+
+float setting_font_pt(struct app *a)
+{
+	return sizes_pt[clamp(*style(a, ST_SIZE), 0, N_SIZES - 1)];
+}
+
+int setting_margin_px(struct app *a)
+{
+	return margins_px[clamp(*style(a, ST_MARGIN), 0, 2)];
 }
 
 long long setting_dim_ms(const struct app *a)
@@ -83,8 +117,8 @@ void apply_settings(struct app *a)
 {
 	char css[256];
 	snprintf(css, sizeof css, "%s %s %s", page_css,
-		 font_css[clamp(a->lib.set.font, 0, 2)],
-		 spacing_css[clamp(a->lib.set.spacing, 0, 2)]);
+		 font_css[clamp(*style(a, ST_FONT), 0, 2)],
+		 spacing_css[clamp(*style(a, ST_SPACING), 0, 2)]);
 	fz_set_user_css(a->ctx, css);
 }
 
@@ -98,7 +132,7 @@ enum kind {
 };
 
 enum row_id {
-	R_SIZE, R_FONT, R_SPACING, R_MARGIN,
+	R_FOR, R_SIZE, R_FONT, R_SPACING, R_MARGIN,
 	R_DARK, R_LIGHT, R_DIM, R_SLEEP, R_CLOCK24, R_SETTIME, R_PASS,
 };
 
@@ -110,6 +144,7 @@ struct row {
 };
 
 static const struct row reading_rows[] = {
+	{ R_FOR, SEG, "For", { "All books", "This book" } },
 	{ R_SIZE, STEP, "Text size", { 0 } },
 	{ R_FONT, SEG, "Font", { "Book", "Serif", "Sans" } },
 	{ R_SPACING, SEG, "Line spacing", { "Book", "Wider", "Widest" } },
@@ -144,22 +179,30 @@ static int page_rows(struct app *a, const struct row **out)
 			continue;
 		if (src[i].id == R_SETTIME && !a->plat->set_time)
 			continue;
+		/* "For: this book" only with a book open */
+		if (src[i].id == R_FOR && !a->doc)
+			continue;
 		out[k++] = &src[i];
 	}
 	return k;
 }
 
+static int custom_now;	/* R_FOR's value, read from the open book */
+
 static int *row_value(struct app *a, enum row_id id)
 {
 	switch (id) {
+	case R_FOR:
+		custom_now = styled_book(a) != NULL;
+		return &custom_now;
 	case R_SIZE:
-		return &a->lib.set.size;
+		return style(a, ST_SIZE);
 	case R_FONT:
-		return &a->lib.set.font;
+		return style(a, ST_FONT);
 	case R_SPACING:
-		return &a->lib.set.spacing;
+		return style(a, ST_SPACING);
 	case R_MARGIN:
-		return &a->lib.set.margin;
+		return style(a, ST_MARGIN);
 	case R_DARK:
 		return &a->lib.set.dark;
 	case R_DIM:
@@ -416,7 +459,28 @@ int on_settings(struct app *a, const struct action *act)
 			continue;
 
 		int *v = row_value(a, r->id);
-		if (r->id == R_PASS) {
+		if (r->id == R_FOR) {
+			mr_book *b = cur_book(a);
+			if (!b || i == b->custom)
+				return 0;
+			if (i == 1) {
+				/* start from what it looks like now */
+				b->style.size = a->lib.set.size;
+				b->style.font = a->lib.set.font;
+				b->style.spacing = a->lib.set.spacing;
+				b->style.margin = a->lib.set.margin;
+				snprintf(a->status, sizeof a->status,
+					 "Changes now apply to this book only");
+			} else {
+				snprintf(a->status, sizeof a->status,
+					 "This book follows the defaults again");
+			}
+			b->custom = i;
+			a->relayout = 1;
+			apply_settings(a);
+			mr_library_save(&a->lib);
+			return 1;
+		} else if (r->id == R_PASS) {
 			if (!a->lib.set.pass)
 				pass_settings(a, PASS_NEW);
 			else

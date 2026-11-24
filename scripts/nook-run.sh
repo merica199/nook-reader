@@ -27,6 +27,12 @@ make -C "$ROOT/reader" nook
 
 echo "Waiting for the Nook (plug it in, USB debugging on)..."
 adb wait-for-device
+device=$(adb shell getprop ro.product.device | tr -d '\r')
+if [ "$device" != encore ]; then
+	echo "This is \"$device\"; only the Nook Color (\"encore\") is" \
+		"supported." >&2
+	exit 1
+fi
 adb shell mkdir -p "$DIR/dict"
 adb push "$ROOT/reader/reader-nook" "$BIN"
 adb shell chmod 755 "$BIN"

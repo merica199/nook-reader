@@ -91,6 +91,10 @@ static void drop_toc(struct app *a)
 
 void close_book(struct app *a)
 {
+	if (a->style_path) {	/* back to the defaults */
+		a->style_path = NULL;
+		apply_settings(a);
+	}
 	drop_toc(a);
 	fz_drop_document(a->ctx, a->doc);
 	a->doc = NULL;
@@ -114,6 +118,11 @@ int open_book(struct app *a, mr_book *b)
 	fz_var(doc);
 	fz_var(loc);
 	fz_var(chapters);
+
+	/* lay it out with its own settings, if it has them */
+	const char *was = a->style_path;
+	a->style_path = b->path;
+	apply_settings(a);
 
 	text_box(a, &tx, &ty, &tw, &th);
 	fz_try(ctx) {
@@ -150,10 +159,14 @@ int open_book(struct app *a, mr_book *b)
 		fz_drop_document(ctx, doc);
 		snprintf(a->status, sizeof a->status,
 			 "Couldn't open %s", b->title);
+		a->style_path = was;	/* the old book stays open */
+		apply_settings(a);
 		return -1;
 	}
 
 	close_book(a);
+	a->style_path = b->path;
+	apply_settings(a);
 	a->doc = doc;
 	a->loc = loc;
 	a->chapters = chapters;

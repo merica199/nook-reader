@@ -48,6 +48,16 @@ typedef struct {
 	 * "" if it doesn't say; NULL if not looked at yet.
 	 */
 	char *published;
+
+	/*
+	 * This book's own reading settings (Settings, Reading, "For:
+	 * This book"), in place of the defaults while it's open. Indexes
+	 * into the same choices as mr_settings. Only used if custom.
+	 */
+	int custom;
+	struct {
+		int size, font, spacing, margin;
+	} style;
 } mr_book;
 
 /* How the library list is sorted (the Library's Sort button). */

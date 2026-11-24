@@ -35,6 +35,19 @@ sh_ok() {
 	[ "$(adb shell "$1 && echo ok" | tr -d '\r' | tail -1)" = ok ]
 }
 
+# Only the Nook Color ("encore"), rooted, with a bootloader that has
+# the alternate slot. Anything else: stop before touching anything.
+refuse() {
+	echo "Not installing: $1" >&2
+	echo "MyNook supports only the Nook Color (BNRV200) running" >&2
+	echo "CyanogenMod 10.2 with root over adb. See README.md." >&2
+	exit 1
+}
+device=$(adb shell getprop ro.product.device | tr -d '\r')
+[ "$device" = encore ] || \
+	refuse "this is \"$device\", not a Nook Color (\"encore\")"
+sh_ok "id | busybox grep -q 'uid=0'" || refuse "adb isn't running as root"
+
 mount_p1() {
 	adb shell "mkdir -p $P1"
 	sh_ok "mount -t vfat /dev/block/mmcblk0p1 $P1" || {
@@ -70,6 +83,11 @@ if [ ! -f "$OUT/p1-backup.img" ]; then
 fi
 
 mount_p1
+# CyanogenMod's bootloader loads uAltImg/uAltRam; others may not.
+if ! sh_ok "busybox grep -q uAltImg $P1/u-boot.bin"; then
+	unmount_p1
+	refuse "this bootloader has no alternate boot slot (uAltImg)"
+fi
 echo "Installing MyNook on the boot partition..."
 # New names first, then renamed: a pulled cable never leaves a
 # half-written file under the name the bootloader loads.

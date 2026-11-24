@@ -15,8 +15,8 @@
  * files still load (their percent is worked out the old way).
  */
 #define STATE_MAGIC "myreader-state "
-#define STATE_VERSION 3
-#define STATE_FIELDS 12
+#define STATE_VERSION 4
+#define STATE_FIELDS 13
 
 /* How deep to look for books: Calibre uses author/title/book.epub. */
 #define MAX_DEPTH 6
@@ -143,9 +143,10 @@ void mr_library_load(mr_library *lib, const char *state_path)
 		}
 		/*
 		 * Older versions stop sooner: version 1 before the
-		 * percent, version 2 before the published date.
+		 * percent, 2 before the published date, 3 before the
+		 * book's own settings.
 		 */
-		if (n < STATE_FIELDS - 2)
+		if (n < STATE_FIELDS - 3)
 			continue;
 
 		mr_book *b = add_book(lib);
@@ -163,6 +164,12 @@ void mr_library_load(mr_library *lib, const char *state_path)
 			b->percent = atoi(field[10]);
 		if (n > 11)
 			b->published = dup_clean(field[11]);
+		/* "size:font:spacing:margin", or empty for the defaults */
+		if (n > 12 && sscanf(field[12], "%d:%d:%d:%d",
+				     &b->style.size, &b->style.font,
+				     &b->style.spacing,
+				     &b->style.margin) == 4)
+			b->custom = 1;
 	}
 	fclose(f);
 }
@@ -394,13 +401,18 @@ int mr_library_save(const mr_library *lib)
 				       setting_keys[i].offset));
 	for (int i = 0; i < lib->count; i++) {
 		const mr_book *b = &lib->items[i];
+		char style[48] = "";
+		if (b->custom)
+			snprintf(style, sizeof style, "%d:%d:%d:%d",
+				 b->style.size, b->style.font,
+				 b->style.spacing, b->style.margin);
 		fprintf(f, "%s\t%lld\t%lld\t%d\t%d\t%d\t%d\t%lld\t%s\t%s"
-			"\t%d\t%s\n",
+			"\t%d\t%s\t%s\n",
 			b->path, b->size, b->mtime, b->chapter, b->page,
 			b->chapter_pages, b->chapters, b->last_read,
 			b->title ? b->title : "",
 			b->author ? b->author : "", b->percent,
-			b->published ? b->published : "");
+			b->published ? b->published : "", style);
 	}
 	if (fflush(f) != 0 || fsync(fileno(f)) != 0) {
 		perror(tmp);

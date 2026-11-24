@@ -127,7 +127,9 @@ Progress is weighted by the size of each chapter's file inside the EPUB, read st
 The state file (`/data/mynook/state`) is plain text, written on every page turn the safe way: to a temporary file, `fsync`, then `rename`. A dead battery can't leave half a file.
 
 - **Settings:** lines like `#dark<TAB>1`.
-- **Books:** one line per book, tab-separated: path, size and modification time (to notice a changed file), the saved place, when it was last read, title, author, percent, and the published date from the EPUB's `dc:date`. Calibre writes year 0101 for "unknown", which counts as no date.
+- **Books:** one line per book, tab-separated: path, size and modification time (to notice a changed file), the saved place, when it was last read, title, author, percent, the published date from the EPUB's `dc:date` (Calibre writes year 0101 for "unknown", which counts as no date), and the book's own reading settings if it has any (`size:font:spacing:margin`, empty for the defaults).
+
+Reading settings go through one function (`style()` in `settings.c`) that hands back the open book's own value if it has one, else the default. Opening a book switches to its settings before laying it out; closing it switches back.
 
 The Library sorts by any of five orders. Home, the lock screen and start-up don't depend on that order: they ask for the most recently read books separately (`mr_library_recent`).
 
